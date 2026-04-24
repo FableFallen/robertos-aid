@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:api.anthropic.com)",
+      "Bash(cd /tmp)",
+      "Bash(tar xf *)",
+      "Read(//tmp/**)",
+      "Bash(start *)",
+      "Bash(file /c/Users/Admin/Desktop/asdf/bucks/productivity/*.mp4 /c/Users/Admin/Desktop/asdf/bucks/productivity/*.png)"
+    ]
+  }
+}
