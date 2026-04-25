@@ -36,6 +36,7 @@ The project should stay simple. Do not introduce a build system unless explicitl
 Use these exact local filenames:
 
 - `looping space.mp4`
+- `background hall.mp4`
 - `space.png`
 - `genricparticle.png`
 
@@ -49,7 +50,7 @@ Use:
 
 - `looping space.mp4`
 
-This should be the main full-screen background for the landing / selector page.
+This is the background for the landing / selector page only.
 
 Requirements:
 
@@ -63,17 +64,61 @@ Requirements:
 
 Important:
 
-Do not heavily overlay `space.png` or `genricparticle.png` on top of the video in a messy way.
+Do not use `background hall.mp4` on the landing / selector page.
 
-The video should stand on its own.
+Do not heavily overlay `space.png` or `genricparticle.png` on top of the selector video in a messy way.
+
+The selector page video should stand on its own.
 
 ### Internal Page Background
 
 Use:
 
+- `background hall.mp4`
+
+This is the background for all normal/internal app pages.
+
+Internal pages include:
+
+- Pomodoro
+- Timer / Stopwatch
+- Tasks
+
+Requirements:
+
+- full-screen background video
+- autoplay
+- muted
+- loop
+- playsinline
+- object-fit: cover
+- strong dark overlay for readability
+- optional subtle blur or dim layer if needed
+
+Important:
+
+Do not use `background hall.mp4` on the landing / selector page.
+
+Use it only after the user enters one of the modules.
+
+Because `background hall.mp4` is brighter and softer than the old particle background, internal UI panels must be more readable:
+
+- stronger dark translucent panels
+- higher text contrast
+- clearer borders
+- frosted / matte glass styling
+- subtle shadows
+- clean spacing
+
+The internal pages should feel like dark control panels floating over a bright futuristic hallway.
+
+### Internal Page Fallback Background
+
+Use:
+
 - `genricparticle.png`
 
-This should be the default background for the internal app pages.
+This should only be used as a fallback if `background hall.mp4` fails to load or if a static internal background is needed.
 
 This background should be:
 
@@ -152,8 +197,22 @@ It should include:
 - Start
 - Pause
 - Reset
-- optional focus/break settings
+- customizable work duration
+- customizable break duration
+- optional long break duration
+- optional rounds before long break
 - optional completed session count
+- optional session label
+- optional attached task
+
+Pomodoro behavior:
+
+- user chooses how long they want to work
+- user chooses break time
+- timer cycles through work and break periods
+- breaks are the times in between work sessions
+- do not lock the user into only 25/5/15 presets
+- presets are fine, but custom inputs must exist
 
 Keep it simple and dedicated to Pomodoro only.
 
@@ -196,9 +255,23 @@ Meaning:
 The task page should support:
 
 - add task
+- edit task
 - move task between Burner, Active, and Completed
+- drag task cards between columns
 - mark complete
 - delete task
+
+Task creation should use a modal/window, not just a cramped single-line input.
+
+Task editing should use the same modal/window.
+
+Task modal fields:
+
+- Task title
+- Column/status: Burner, Active, Completed
+- Label/category
+- Estimated time
+- Priority: Low, Medium, High
 
 Keep it simple.
 
@@ -223,6 +296,8 @@ Requirements:
 - no clutter
 
 The background should feel cinematic and atmospheric, but the UI should remain readable.
+
+Again: the landing selector must use `looping space.mp4`, not `background hall.mp4`.
 
 ## Landing Page Visual Reference
 
@@ -306,6 +381,14 @@ No clutter.
 
 ## Internal Page Design Rules
 
+All internal pages should use `background hall.mp4`.
+
+Internal pages include:
+
+- Pomodoro
+- Timer / Stopwatch
+- Tasks
+
 All internal pages should be extremely simple.
 
 General rules:
@@ -321,6 +404,15 @@ General rules:
 - no unnecessary stats
 - no complicated analytics
 
+Because the internal background is brighter, internal UI should prioritize readability:
+
+- stronger dark glass panels
+- brighter text
+- clearer input borders
+- clearer panel outlines
+- stronger button contrast
+- more spacing between controls
+
 Each page should feel purpose-built.
 
 Pomodoro page = only Pomodoro.
@@ -328,6 +420,54 @@ Pomodoro page = only Pomodoro.
 Timer page = only work-time tracking.
 
 Tasks page = only sprint-style tasks.
+
+## Pomodoro Visual / Behavior Notes
+
+The Pomodoro timer should not look choppy.
+
+Timer progress should feel smooth:
+
+- circular progress should animate smoothly
+- avoid jumpy/teleporting progress movement
+- displayed numbers can update each second
+- progress ring should ease smoothly using CSS transitions or requestAnimationFrame
+
+The settings panel should not overlap or cram text.
+
+Use clean stacked sections:
+
+- Work duration
+- Break duration
+- Long break duration
+- Rounds before long break
+- Session label
+- Attached task
+- Today/session summary
+- Session log if included
+
+Each section should have enough spacing.
+
+## Tasks Visual / Behavior Notes
+
+The Tasks page should use the sprint-board concept:
+
+- Burner
+- Active
+- Completed
+
+Cards should be readable and draggable.
+
+Drag behavior:
+
+- cards can be dragged between columns
+- dragged card should lift visually
+- add slight wobble/tilt while dragging
+- target column should highlight subtly
+- dropping should animate smoothly if possible
+
+Completed tasks can be dimmer or struck through, but they should still remain readable.
+
+Task labels/categories should matter and be visible on cards.
 
 ## Navigation After Landing
 
@@ -378,6 +518,36 @@ Use:
 
 The landing page title should feel elegant and spacious.
 
+## UI Sounds
+
+Use these local sound files if present:
+
+- `select.wav`
+- `swipe_01.wav`
+- `button.wav`
+- `toggle_on.wav`
+- `notification.wav`
+
+Sound mapping:
+
+- `select.wav` = opening/selecting a module from the landing selector
+- `swipe_01.wav` = scrolling or arrow-keying through the landing wheel selector
+- `button.wav` = normal button clicks like Start, Pause, Reset, Add Task, Delete, Edit, Save, Cancel
+- `toggle_on.wav` = mode changes/settings changes, moving task status, or dropping a task into a new column
+- `notification.wav` = Pomodoro work session ends, break ends, or timer completes
+
+Keep sounds subtle:
+
+- volume around 0.25 to 0.35
+- no aggressive repeated sounds
+- avoid loops
+- no typing sounds
+
+Do not use:
+
+- `progress_loop.wav`
+- `ringtone_loop.wav`
+
 ## What To Avoid
 
 Do not add:
@@ -410,22 +580,27 @@ Do not introduce unnecessary complexity.
 
 Prioritize:
 
-1. getting the landing selector interaction right
-2. using `looping space.mp4` cleanly on the landing page
-3. using `genricparticle.png` subtly on internal pages
-4. keeping the app minimal
-5. making each page focused on its single purpose
+1. landing selector uses `looping space.mp4`
+2. internal pages use `background hall.mp4`
+3. `genricparticle.png` is only fallback for internal pages
+4. each page remains focused on one purpose
+5. Pomodoro has customizable work/break cycles
+6. timer/stopwatch tracks overall work time
+7. tasks use Burner / Active / Completed with modal create/edit
+8. UI remains readable over the internal video background
 
 ## Final Feel
 
 Roberto’s Aid should feel like a clean, minimal, cinematic productivity tool with a space theme.
 
-The landing page should feel like a smooth vertical selector screen.
+The landing page should feel like a smooth vertical selector screen over `looping space.mp4`.
 
-The internal pages should feel focused and purpose-built:
+The internal pages should feel like focused dark glass control panels over `background hall.mp4`.
+
+The internal pages should feel purpose-built:
 
 - Pomodoro page = only Pomodoro
 - Timer page = only work-time tracking
 - Tasks page = only sprint-style tasks
 
-Everything should feel calm, intentional, and easy to use.
+Everything should feel calm, intentional, readable, and easy to use.
