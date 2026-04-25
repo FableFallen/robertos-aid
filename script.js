@@ -3,20 +3,41 @@
 const { useState, useEffect, useRef, useCallback } = React;
 
 // ─── Sound System ─────────────────────────────────────────
+const SOUND_VOLUME      = 0.15;
+const SOUND_COOLDOWN_MS = 120;
+
+// Module-level control object — React toggles mutate this directly
+// so playSound() doesn't need React state access.
+// Defaults to muted (true) on first visit to avoid GitHub Pages surprises.
+const soundCtrl = {
+  muted: (() => {
+    try {
+      const v = localStorage.getItem('ra_sound_muted');
+      return v === null ? true : v === 'true';
+    } catch(e) { return true; }
+  })(),
+  lastPlayed: {},
+};
+
 const SOUNDS = {};
 ['select', 'swipe_01', 'button', 'toggle_on', 'notification'].forEach(name => {
   try {
     const a = new Audio(`sounds/${name}.wav`);
     a.preload = 'auto';
-    a.volume = 0.3;
+    a.volume  = SOUND_VOLUME;
     SOUNDS[name] = a;
   } catch(e) {}
 });
 
 function playSound(name) {
+  if (soundCtrl.muted) return;
   try {
     const a = SOUNDS[name];
     if (!a) return;
+    const now = Date.now();
+    if (now - (soundCtrl.lastPlayed[name] || 0) < SOUND_COOLDOWN_MS) return;
+    soundCtrl.lastPlayed[name] = now;
+    a.volume      = SOUND_VOLUME;
     a.currentTime = 0;
     a.play().catch(() => {});
   } catch(e) {}
@@ -106,6 +127,8 @@ const Icons = {
   tasks:           <SvgIcon d={<><line x1="7" y1="6" x2="16" y2="6"/><line x1="7" y1="10" x2="16" y2="10"/><line x1="7" y1="14" x2="13" y2="14"/><circle cx="4" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="4" cy="10" r="1.2" fill="currentColor" stroke="none"/><circle cx="4" cy="14" r="1.2" fill="currentColor" stroke="none"/></>}/>,
   accomplishments: <SvgIcon d={<><circle cx="10" cy="10" r="7.5"/><polyline points="7,10 9,13 14,7"/></>}/>,
   backdrop:        <SvgIcon size={16} d={<><rect x="2" y="3" width="16" height="12" rx="2"/><line x1="6" y1="19" x2="14" y2="19"/><line x1="10" y1="15" x2="10" y2="19"/></>}/>,
+  soundOn:         <SvgIcon size={16} d={<><polygon points="3,8 7,8 11,4 11,16 7,12 3,12"/><path d="M13.5,8.5 C14.5,9.5 14.5,10.5 13.5,11.5"/><path d="M15.5,6.5 C17.5,8.5 17.5,11.5 15.5,13.5"/></>}/>,
+  soundOff:        <SvgIcon size={16} d={<><polygon points="3,8 7,8 11,4 11,16 7,12 3,12"/><line x1="14" y1="7" x2="18" y2="13"/><line x1="14" y1="13" x2="18" y2="7"/></>}/>,
 };
 
 const NAV = [
@@ -189,7 +212,7 @@ function Landing({ onNavigate }) {
 }
 
 // ─── Sidebar ──────────────────────────────────────────────
-function Sidebar({ screen, onNavigate, bgPanelOpen, onToggleBgPanel }) {
+function Sidebar({ screen, onNavigate, bgPanelOpen, onToggleBgPanel, soundMuted, onToggleSound }) {
   return (
     <nav className="sidebar">
       <button className="sidebar-logo"
@@ -212,6 +235,12 @@ function Sidebar({ screen, onNavigate, bgPanelOpen, onToggleBgPanel }) {
         onClick={onToggleBgPanel}
         data-tip="Background">
         {Icons.backdrop}
+      </button>
+      <button className={`sidebar-btn ${!soundMuted ? 'active' : ''}`}
+        style={{marginTop:4}}
+        onClick={onToggleSound}
+        data-tip={soundMuted ? 'Sound off' : 'Sound on'}>
+        {soundMuted ? Icons.soundOff : Icons.soundOn}
       </button>
     </nav>
   );
@@ -266,7 +295,7 @@ function BgSettingsPanel({ bgChoice, bgFilter, onSetBgChoice, onSetBgFilter, onC
 }
 
 // ─── App Shell ────────────────────────────────────────────
-function AppShell({ screen, onNavigate, bgChoice, bgFilter, onSetBgChoice, onSetBgFilter, children }) {
+function AppShell({ screen, onNavigate, bgChoice, bgFilter, onSetBgChoice, onSetBgFilter, soundMuted, onToggleSound, children }) {
   const [showBgPanel, setShowBgPanel] = useState(false);
   const bg = BACKGROUNDS.find(b => b.id === bgChoice) || BACKGROUNDS[0];
 
@@ -288,6 +317,8 @@ function AppShell({ screen, onNavigate, bgChoice, bgFilter, onSetBgChoice, onSet
       <Sidebar screen={screen} onNavigate={onNavigate}
         bgPanelOpen={showBgPanel}
         onToggleBgPanel={() => { playSound('button'); setShowBgPanel(v => !v); }}
+        soundMuted={soundMuted}
+        onToggleSound={onToggleSound}
       />
       {showBgPanel && (
         <>
@@ -1200,8 +1231,17 @@ function App() {
     try { return JSON.parse(safeLS.get('ra_accomplishments','[]')); } catch(e) { return []; }
   });
   const [acModal,   setAcModal]   = useState(null);
-  const [bgChoice,  setBgChoice]  = useState(() => safeLS.get('ra_bg',     'hall'));
-  const [bgFilter,  setBgFilter]  = useState(() => safeLS.get('ra_filter', 'clean'));
+  const [bgChoice,    setBgChoice]    = useState(() => safeLS.get('ra_bg',     'hall'));
+  const [bgFilter,    setBgFilter]    = useState(() => safeLS.get('ra_filter', 'clean'));
+  const [soundMuted,  _setSoundMuted] = useState(() => soundCtrl.muted);
+
+  const toggleSound = () => {
+    const next = !soundCtrl.muted;
+    soundCtrl.muted = next;
+    _setSoundMuted(next);
+    safeLS.set('ra_sound_muted', String(next));
+    if (!next) playSound('button');
+  };
 
   const pomRef = useRef(pom);
   pomRef.current = pom;
@@ -1274,7 +1314,8 @@ function App() {
     <>
       <AppShell screen={screen} onNavigate={setScreen}
         bgChoice={bgChoice} bgFilter={bgFilter}
-        onSetBgChoice={handleSetBgChoice} onSetBgFilter={handleSetBgFilter}>
+        onSetBgChoice={handleSetBgChoice} onSetBgFilter={handleSetBgFilter}
+        soundMuted={soundMuted} onToggleSound={toggleSound}>
         {screen==='pomodoro' && <Pomodoro pomState={pom} setPomState={setPom} taskTitles={taskTitles} onPostAccomplishment={handlePostFromSession}/>}
         {screen==='timer'    && <TimerScreen sessions={timerSessions} onAddSession={s=>setTimerSess(prev=>[...prev,s])} taskTitles={taskTitles} onPostAccomplishment={handlePostFromSession}/>}
         {screen==='tasks'    && <Tasks cols={taskCols} setCols={setTaskCols} focusData={taskFocusMap} accomplishmentMap={accomplishMap}/>}
