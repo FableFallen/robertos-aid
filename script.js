@@ -247,6 +247,8 @@ function calFromMins(mins) {
   return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
 }
 function calNowMins() { const n=new Date(); return n.getHours()*60+n.getMinutes(); }
+const fmtAmPm = time => { const [h, m='00'] = String(time).split(':').map(Number); const suffix = h >= 12 ? 'PM' : 'AM'; const hour = h % 12 || 12; return `${hour}:${String(m).padStart(2,'0')} ${suffix}`; };
+const fmtHourAmPm = h => { const suffix = h >= 12 ? 'PM' : 'AM'; const hour = h % 12 || 12; return `${hour} ${suffix}`; };
 function calColorHex(id) {
   if (id && id.startsWith('#')) return id;
   return (CAL_COLORS.find(c=>c.id===id)||CAL_COLORS[0]).hex;
@@ -1656,7 +1658,7 @@ function ImportCalModal({ onImport, onCancel }) {
                     <div style={{width:8,height:8,borderRadius:'50%',background:calColorHex(ev.color),flexShrink:0}}/>
                     <div className="col flex1 g1">
                       <div className="t11 fw5">{ev.title}</div>
-                      <div className="mono t9 c3">{ev.date} · {ev.startTime}–{ev.endTime}{ev.tag?` · ${ev.tag}`:''}</div>
+                      <div className="mono t9 c3">{ev.date} · {fmtAmPm(ev.startTime)}–{fmtAmPm(ev.endTime)}{ev.tag?` · ${ev.tag}`:''}</div>
                     </div>
                   </div>
                 ))}
@@ -1945,7 +1947,7 @@ function CalendarScreen({ events, onSaveEvent, onDeleteEvent, onImportCal }) {
           <div className="cal-time-gutter">
             {CAL_HOURS.map(h => (
               <div key={h} className="cal-time-label">
-                {h > 0 ? `${String(h).padStart(2,'0')}:00` : ''}
+                {h > 0 ? fmtHourAmPm(h) : ''}
               </div>
             ))}
           </div>
@@ -1997,7 +1999,7 @@ function CalendarScreen({ events, onSaveEvent, onDeleteEvent, onImportCal }) {
                         onClick={e => openEdit(ev, e)}>
                         <div className="cal-event-title"
                           style={{color: isCrimson ? '#e8a0a0' : '#ddd'}}>{ev.title}</div>
-                        {h > 30 && <div className="cal-event-time">{ev.startTime}–{ev.endTime}</div>}
+                        {h > 30 && <div className="cal-event-time">{fmtAmPm(ev.startTime)}–{fmtAmPm(ev.endTime)}</div>}
                       </div>
                     );
                   })}
