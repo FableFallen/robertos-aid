@@ -24,6 +24,14 @@
   --radius:    12px;
   --radius-sm: 7px;
   --sidebar:   58px;
+  /* Theme-switchable surface tokens */
+  --panel-bg:       rgba(5,5,5,0.84);
+  --card-bg:        rgba(8,8,8,0.72);
+  --modal-bg:       rgba(10,10,10,0.98);
+  --sidebar-bg:     rgba(3,3,3,0.90);
+  --field-bg:       rgba(255,255,255,0.04);
+  --field-focus-bg: rgba(255,255,255,0.06);
+  --dimmed-card-bg: rgba(5,5,5,0.55);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -300,7 +308,7 @@ svg    { display: block; }
   display: flex; flex-direction: column; align-items: center;
   padding: 18px 0 20px;
   border-right: 1px solid var(--border);
-  background: rgba(3,3,3,0.90);
+  background: var(--sidebar-bg);
   backdrop-filter: blur(32px);
 }
 
@@ -411,7 +419,7 @@ svg    { display: block; }
 
 /* Panel — strong frosted glass over the hall video */
 .panel {
-  background: rgba(5,5,5,0.84);
+  background: var(--panel-bg);
   backdrop-filter: blur(32px) saturate(0.8);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -506,13 +514,13 @@ svg    { display: block; }
 .field {
   display: flex; align-items: center; gap: 8px;
   height: 34px; padding: 0 12px;
-  background: rgba(255,255,255,0.04);
+  background: var(--field-bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text); font-size: 12.5px;
   transition: border-color 0.18s, background 0.18s;
 }
-.field:focus-within { border-color: var(--border-2); background: rgba(255,255,255,0.06); }
+.field:focus-within { border-color: var(--border-2); background: var(--field-focus-bg); }
 .field input {
   background: transparent; border: none; outline: none;
   color: var(--text); font-size: 12.5px; font-family: inherit; width: 100%;
@@ -532,8 +540,8 @@ svg    { display: block; }
 /* Task card */
 .task-card {
   padding: 12px 14px;
-  background: rgba(8,8,8,0.74);
-  border: 1px solid rgba(255,255,255,0.15);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   box-shadow: 0 2px 14px rgba(0,0,0,0.4);
   transition: border-color 0.18s, box-shadow 0.18s, opacity 0.18s, transform 0.18s;
@@ -542,12 +550,12 @@ svg    { display: block; }
   animation: card-enter 0.22s ease;
 }
 .task-card:hover {
-  border-color: rgba(255,255,255,0.28);
+  border-color: var(--border-2);
   box-shadow: 0 4px 20px rgba(0,0,0,0.5);
 }
 .task-card:active { cursor: grabbing; }
 .task-card.is-dragging { opacity: 0.25; transform: scale(0.97); }
-.task-card.dimmed { border-color: rgba(255,255,255,0.07); background: rgba(5,5,5,0.55); }
+.task-card.dimmed { border-color: rgba(255,255,255,0.07); background: var(--dimmed-card-bg); }
 
 @keyframes card-enter {
   from { opacity: 0; transform: translateY(-6px); }
@@ -567,7 +575,7 @@ svg    { display: block; }
 
 .modal-box {
   width: min(480px, 92vw);
-  background: rgba(10,10,10,0.98);
+  background: var(--modal-bg);
   border: 1px solid rgba(255,255,255,0.18);
   border-radius: 14px;
   overflow: hidden;
@@ -613,8 +621,8 @@ svg    { display: block; }
   transform: translateY(-50%);
   z-index: 500;
   width: 216px;
-  background: rgba(8,8,8,0.96);
-  border: 1px solid rgba(255,255,255,0.16);
+  background: var(--modal-bg);
+  border: 1px solid var(--border-2);
   border-radius: 12px;
   padding: 16px;
   backdrop-filter: blur(40px);
@@ -871,3 +879,276 @@ svg    { display: block; }
 }
 .cal-swatch:hover { transform: scale(1.18); }
 .cal-swatch.sel   { border-color: rgba(255,255,255,0.72); }
+
+/* ════════════════════════════════════════════════
+   HABITS
+════════════════════════════════════════════════ */
+
+/* Weekly summary strip */
+.hab-week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.hab-week-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 4px 6px;
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.02);
+  border: 1px solid transparent;
+  transition: background 0.15s;
+}
+
+.hab-week-day.is-today {
+  background: rgba(192,57,43,0.06);
+  border-color: rgba(192,57,43,0.26);
+}
+
+/* Habit card — Today view */
+.hab-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  min-height: 44px;
+  transition: border-color 0.18s, background 0.18s, opacity 0.2s;
+}
+.hab-card:hover { border-color: var(--border-2); }
+.hab-card.done  {
+  background: rgba(5,5,5,0.45);
+  border-color: rgba(255,255,255,0.06);
+}
+
+/* Textarea inside habit modals / review */
+.hab-ta {
+  width: 100%;
+  background: var(--field-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 12.5px;
+  font-family: inherit;
+  padding: 8px 12px;
+  resize: none;
+  outline: none;
+  line-height: 1.5;
+  transition: border-color 0.18s, background 0.18s;
+}
+.hab-ta:focus {
+  border-color: var(--border-2);
+  background: rgba(255,255,255,0.06);
+}
+.hab-ta::placeholder { color: var(--text-3); }
+
+/* Habit row — Manage view */
+.hab-manage-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+}
+.hab-manage-row:first-child { padding-top: 0; }
+.hab-manage-row:last-child  { padding-bottom: 0; }
+
+/* Import drop zone */
+.import-drop-zone {
+  border: 1.5px dashed var(--border-2);
+  border-radius: var(--radius);
+  padding: 24px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.18s, background 0.18s;
+  background: var(--surface);
+}
+.import-drop-zone:hover {
+  border-color: rgba(192,57,43,0.5);
+  background: var(--surface-2);
+}
+
+/* ════════════════════════════════════════════════
+   LIGHT TAN THEME
+════════════════════════════════════════════════ */
+[data-theme="tan"] {
+  --bg:             #f0ebe0;
+  --bg-2:           #e8e2d6;
+  --bg-3:           #dfd9cb;
+  --surface:        rgba(60,40,10,0.05);
+  --surface-2:      rgba(60,40,10,0.09);
+  --surface-3:      rgba(60,40,10,0.15);
+  --border:         rgba(60,40,10,0.13);
+  --border-2:       rgba(60,40,10,0.24);
+  --text:           #2a2318;
+  --text-2:         #5a5040;
+  --text-3:         #8c7a62;
+  --red:            #b83228;
+  --red-2:          #b03525;
+  --red-glow:       rgba(184,50,40,0.12);
+  --red-dim:        rgba(184,50,40,0.05);
+  --panel-bg:       rgba(244,238,226,0.95);
+  --card-bg:        rgba(248,243,232,0.90);
+  --modal-bg:       rgba(248,244,234,1.0);
+  --sidebar-bg:     rgba(234,226,210,0.97);
+  --field-bg:       rgba(60,40,10,0.05);
+  --field-focus-bg: rgba(60,40,10,0.09);
+  --dimmed-card-bg: rgba(220,212,196,0.60);
+}
+
+/* Lighter overlay so background video shows warmly through panels */
+[data-theme="tan"] .app-bg-overlay {
+  background: linear-gradient(
+    to bottom,
+    rgba(228,215,192,0.76) 0%,
+    rgba(220,206,182,0.64) 50%,
+    rgba(224,210,186,0.78) 100%
+  );
+}
+
+/* Dim the fallback particle image in tan mode */
+[data-theme="tan"] .app-bg-fallback {
+  opacity: 0.25;
+  filter: brightness(0.5) saturate(0.3) sepia(0.4);
+}
+
+/* Landing stays dark (it's a space video regardless of theme) */
+[data-theme="tan"] .landing-overlay {
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.62) 0%,
+    rgba(0,0,0,0.42) 40%,
+    rgba(0,0,0,0.72) 100%
+  );
+}
+
+/* Sidebar tan overrides */
+[data-theme="tan"] .sidebar-logo {
+  border-color: rgba(184,50,40,0.42);
+  background: rgba(184,50,40,0.08);
+}
+[data-theme="tan"] .sidebar-logo:hover {
+  border-color: rgba(184,50,40,0.68);
+  box-shadow: 0 0 20px rgba(184,50,40,0.18);
+}
+[data-theme="tan"] .sidebar-logo-text { color: rgba(184,50,40,0.85); }
+[data-theme="tan"] .sidebar-btn::before {
+  background: rgba(244,238,226,0.99);
+  border-color: var(--border-2);
+  color: var(--text-2);
+}
+[data-theme="tan"] .sidebar-btn.active::after {
+  border-color: rgba(184,50,40,0.42);
+  box-shadow: 0 0 12px rgba(184,50,40,0.12);
+}
+
+/* Panel inner highlight adjusted for light bg */
+[data-theme="tan"] .panel::before {
+  background: linear-gradient(90deg, transparent, rgba(0,0,0,0.07), transparent);
+}
+[data-theme="tan"] .panel {
+  box-shadow: 0 4px 28px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.65);
+}
+[data-theme="tan"] .panel.red-rim {
+  border-color: rgba(184,50,40,0.3);
+  box-shadow: 0 4px 28px rgba(0,0,0,0.14), 0 0 48px rgba(184,50,40,0.06), inset 0 1px 0 rgba(255,255,255,0.65);
+}
+
+/* Modal in tan mode */
+[data-theme="tan"] .modal-box {
+  border-color: var(--border-2);
+  box-shadow: 0 32px 80px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.07);
+}
+[data-theme="tan"] .modal-header { border-color: var(--border); }
+[data-theme="tan"] .modal-footer { border-color: var(--border); }
+
+/* Buttons */
+[data-theme="tan"] .btn.primary {
+  color: #6a1f18;
+  border-color: rgba(184,50,40,0.55);
+  background: rgba(184,50,40,0.10);
+  box-shadow: 0 0 20px rgba(184,50,40,0.07);
+}
+[data-theme="tan"] .btn.primary:hover {
+  color: #5a1510;
+  border-color: rgba(184,50,40,0.75);
+  background: rgba(184,50,40,0.18);
+}
+
+/* Seg group tan */
+[data-theme="tan"] .seg {
+  background: rgba(60,40,10,0.05);
+  border-color: var(--border);
+}
+[data-theme="tan"] .seg .btn.active {
+  background: rgba(60,40,10,0.10);
+  border-color: var(--border-2);
+  color: var(--text);
+}
+
+/* Task columns and cards */
+[data-theme="tan"] .task-col.drop-target {
+  border-color: rgba(184,50,40,0.5) !important;
+  background: rgba(244,238,226,0.92);
+  box-shadow: inset 0 0 32px rgba(184,50,40,0.06), 0 0 0 1px rgba(184,50,40,0.2);
+}
+[data-theme="tan"] .task-card {
+  border-color: var(--border);
+  box-shadow: 0 2px 14px rgba(0,0,0,0.10);
+}
+[data-theme="tan"] .task-card:hover { border-color: var(--border-2); box-shadow: 0 4px 20px rgba(0,0,0,0.16); }
+[data-theme="tan"] .task-card.dimmed { border-color: rgba(60,40,10,0.06); }
+
+/* BG settings panel */
+[data-theme="tan"] .bg-thumb-btn.active {
+  background: rgba(184,50,40,0.08);
+  border-color: rgba(184,50,40,0.4);
+  color: var(--text);
+}
+[data-theme="tan"] .filter-btn.active {
+  background: rgba(184,50,40,0.07);
+  border-color: rgba(184,50,40,0.32);
+  color: var(--text);
+}
+
+/* Calendar */
+[data-theme="tan"] .cal-col-header {
+  background: rgba(238,228,212,0.90);
+  backdrop-filter: blur(20px);
+}
+[data-theme="tan"] .cal-day-col.is-today { background: rgba(184,50,40,0.025); }
+[data-theme="tan"] .cal-hour-cell { border-color: rgba(60,40,10,0.05); }
+[data-theme="tan"] .cal-hour-cell::after { background: rgba(60,40,10,0.03); }
+[data-theme="tan"] .cal-now-line::after { background: var(--red-2); }
+[data-theme="tan"] .cal-now-dot { background: var(--red-2); box-shadow: 0 0 8px rgba(184,50,40,0.5); }
+[data-theme="tan"] .cal-day-head.is-today .cal-day-num {
+  background: var(--red);
+  box-shadow: 0 0 14px rgba(184,50,40,0.35);
+}
+
+/* Habit cards tan */
+[data-theme="tan"] .hab-card { border-color: var(--border); }
+[data-theme="tan"] .hab-card.done { background: var(--dimmed-card-bg); border-color: rgba(60,40,10,0.06); }
+[data-theme="tan"] .hab-week-day.is-today {
+  background: rgba(184,50,40,0.06);
+  border-color: rgba(184,50,40,0.26);
+}
+
+/* Scrollbar tan */
+[data-theme="tan"] ::-webkit-scrollbar-thumb { background: rgba(60,40,10,0.18); }
+
+/* Wheel selector — accent adjustments for tan (landing stays dark so no visual change needed) */
+
+/* Progress bar */
+[data-theme="tan"] .progress-fill {
+  background: linear-gradient(90deg, rgba(184,50,40,0.75), #c04030);
+}
+
+/* Overlay on modal-backdrop slightly warmer */
+[data-theme="tan"] .modal-backdrop { background: rgba(40,30,20,0.55); }
+
+/* Drop zone tan */
+[data-theme="tan"] .import-drop-zone:hover { border-color: rgba(184,50,40,0.5); }
