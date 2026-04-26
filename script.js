@@ -108,8 +108,26 @@ const FILTER_OPTIONS = [
   { id: 'mono',      label: 'Mono',      desc: 'Grayscale'      },
 ];
 
+const DEFAULT_PROFILE = {
+  name:     '',
+  initials: '',
+  timezone: (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch(e) { return ''; } })(),
+};
+
+function loadState(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw === null) return fallback;
+    return JSON.parse(raw);
+  } catch(e) { return fallback; }
+}
+function saveState(key, val) {
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {}
+}
+
+// Thin shim for ra_sound_muted — stored as raw 'true'/'false' by the module-level soundCtrl init
 const safeLS = {
-  get: (k, def) => { try { return localStorage.getItem(k) || def; } catch(e) { return def; } },
+  get: (k, def) => { try { return localStorage.getItem(k) ?? def; } catch(e) { return def; } },
   set: (k, v)   => { try { localStorage.setItem(k, v); } catch(e) {} },
 };
 
@@ -129,6 +147,8 @@ const Icons = {
   backdrop:        <SvgIcon size={16} d={<><rect x="2" y="3" width="16" height="12" rx="2"/><line x1="6" y1="19" x2="14" y2="19"/><line x1="10" y1="15" x2="10" y2="19"/></>}/>,
   soundOn:         <SvgIcon size={16} d={<><polygon points="3,8 7,8 11,4 11,16 7,12 3,12"/><path d="M13.5,8.5 C14.5,9.5 14.5,10.5 13.5,11.5"/><path d="M15.5,6.5 C17.5,8.5 17.5,11.5 15.5,13.5"/></>}/>,
   soundOff:        <SvgIcon size={16} d={<><polygon points="3,8 7,8 11,4 11,16 7,12 3,12"/><line x1="14" y1="7" x2="18" y2="13"/><line x1="14" y1="13" x2="18" y2="7"/></>}/>,
+  person:          <SvgIcon size={16} d={<><circle cx="10" cy="7.5" r="3"/><path d="M3.5,17.5 C3.5,14 6,12 10,12 C14,12 16.5,14 16.5,17.5"/></>}/>,
+  calendar:        <SvgIcon d={<><rect x="3" y="4" width="14" height="13" rx="1.5"/><line x1="3" y1="8" x2="17" y2="8"/><line x1="7" y1="2" x2="7" y2="6"/><line x1="13" y1="2" x2="13" y2="6"/></>}/>,
 };
 
 const NAV = [
@@ -136,7 +156,105 @@ const NAV = [
   { id: 'timer',           label: 'Timer'           },
   { id: 'tasks',           label: 'Tasks'           },
   { id: 'accomplishments', label: 'Accomplishments' },
+  { id: 'calendar',        label: 'Calendar'        },
 ];
+
+// ─── Calendar utilities ───────────────────────────────────
+const HOUR_H    = 64; // px per hour in the time grid
+const CAL_HOURS = Array.from({length: 24}, (_, i) => i);
+const CAL_DAYS  = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+const CAL_COLORS = [
+  { id: 'crimson', label: 'Crimson', hex: '#c0392b' },
+  { id: 'cobalt',  label: 'Cobalt',  hex: '#2471a3' },
+  { id: 'teal',    label: 'Teal',    hex: '#148f77' },
+  { id: 'amber',   label: 'Amber',   hex: '#ca6f1e' },
+  { id: 'sage',    label: 'Sage',    hex: '#1e8449' },
+  { id: 'violet',  label: 'Violet',  hex: '#7d3c98' },
+];
+
+const CAL_RECUR = [
+  { id: 'none',     label: 'None'     },
+  { id: 'daily',    label: 'Daily'    },
+  { id: 'weekly',   label: 'Weekly'   },
+  { id: 'weekdays', label: 'Weekdays' },
+];
+
+const CAL_MONTH = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function calWeekStart(date) {
+  const d = new Date(date); d.setHours(0,0,0,0);
+  d.setDate(d.getDate() - d.getDay()); return d;
+}
+function calAddDays(date, n) {
+  const d = new Date(date); d.setDate(d.getDate() + n); return d;
+}
+function calDateStr(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth()+1).padStart(2,'0');
+  const d = String(date.getDate()).padStart(2,'0');
+  return `${y}-${m}-${d}`;
+}
+function calToMins(t) {
+  if (!t) return 0;
+  const [h,m] = t.split(':').map(Number);
+  return (h||0)*60 + (m||0);
+}
+function calFromMins(mins) {
+  const h = Math.floor(Math.max(0,mins)/60) % 24;
+  const m = Math.max(0,mins) % 60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+}
+function calNowMins() { const n=new Date(); return n.getHours()*60+n.getMinutes(); }
+function calColorHex(id) { return (CAL_COLORS.find(c=>c.id===id)||CAL_COLORS[0]).hex; }
+
+// Expand recurring events into the visible week; adds _idate (instance date string)
+function calExpandRecurring(events, weekStart) {
+  const result = [], weekEnd = calAddDays(weekStart, 7);
+  events.forEach(ev => {
+    const rec = ev.recurrence || 'none';
+    if (rec === 'none') {
+      try {
+        const d = new Date(ev.date+'T00:00:00');
+        if (!isNaN(d) && d >= weekStart && d < weekEnd)
+          result.push({...ev, _idate: ev.date});
+      } catch(e) {}
+    } else if (rec === 'daily') {
+      for (let i=0; i<7; i++) result.push({...ev, _idate: calDateStr(calAddDays(weekStart,i))});
+    } else if (rec === 'weekly') {
+      try {
+        const orig = new Date(ev.date+'T00:00:00');
+        if (!isNaN(orig)) {
+          const d = calAddDays(weekStart, orig.getDay());
+          if (d >= weekStart && d < weekEnd) result.push({...ev, _idate: calDateStr(d)});
+        }
+      } catch(e) {}
+    } else if (rec === 'weekdays') {
+      for (let i=1; i<=5; i++) result.push({...ev, _idate: calDateStr(calAddDays(weekStart,i))});
+    }
+  });
+  return result;
+}
+
+// Greedy column assignment for overlapping events in one day
+function calLayoutDay(evs) {
+  if (!evs.length) return [];
+  const sorted = [...evs].sort((a,b) => calToMins(a.startTime)-calToMins(b.startTime));
+  const cols = [];
+  sorted.forEach(ev => {
+    const s = calToMins(ev.startTime);
+    let placed = false;
+    for (const col of cols) {
+      if (calToMins(col[col.length-1].endTime) <= s) { col.push(ev); placed=true; break; }
+    }
+    if (!placed) cols.push([ev]);
+  });
+  const n = cols.length;
+  return sorted.map(ev => {
+    const ci = cols.findIndex(c => c.some(e => e===ev));
+    return {ev, ci, n};
+  });
+}
 
 // ─── Landing: vertical wheel selector ─────────────────────
 function Landing({ onNavigate }) {
@@ -212,7 +330,7 @@ function Landing({ onNavigate }) {
 }
 
 // ─── Sidebar ──────────────────────────────────────────────
-function Sidebar({ screen, onNavigate, bgPanelOpen, onToggleBgPanel, soundMuted, onToggleSound }) {
+function Sidebar({ screen, onNavigate, bgPanelOpen, onToggleBgPanel, soundMuted, onToggleSound, onOpenProfile }) {
   return (
     <nav className="sidebar">
       <button className="sidebar-logo"
@@ -241,6 +359,12 @@ function Sidebar({ screen, onNavigate, bgPanelOpen, onToggleBgPanel, soundMuted,
         onClick={onToggleSound}
         data-tip={soundMuted ? 'Sound off' : 'Sound on'}>
         {soundMuted ? Icons.soundOff : Icons.soundOn}
+      </button>
+      <button className="sidebar-btn"
+        style={{marginTop:4}}
+        onClick={onOpenProfile}
+        data-tip="Profile & Settings">
+        {Icons.person}
       </button>
     </nav>
   );
@@ -295,7 +419,7 @@ function BgSettingsPanel({ bgChoice, bgFilter, onSetBgChoice, onSetBgFilter, onC
 }
 
 // ─── App Shell ────────────────────────────────────────────
-function AppShell({ screen, onNavigate, bgChoice, bgFilter, onSetBgChoice, onSetBgFilter, soundMuted, onToggleSound, children }) {
+function AppShell({ screen, onNavigate, bgChoice, bgFilter, onSetBgChoice, onSetBgFilter, soundMuted, onToggleSound, onOpenProfile, children }) {
   const [showBgPanel, setShowBgPanel] = useState(false);
   const bg = BACKGROUNDS.find(b => b.id === bgChoice) || BACKGROUNDS[0];
 
@@ -319,6 +443,7 @@ function AppShell({ screen, onNavigate, bgChoice, bgFilter, onSetBgChoice, onSet
         onToggleBgPanel={() => { playSound('button'); setShowBgPanel(v => !v); }}
         soundMuted={soundMuted}
         onToggleSound={onToggleSound}
+        onOpenProfile={onOpenProfile}
       />
       {showBgPanel && (
         <>
@@ -1166,11 +1291,7 @@ function Accomplishments({ accomplishments, setAccomplishments, onOpenModal }) {
 
   const handleDelete = id => {
     playSound('button');
-    setAccomplishments(prev => {
-      const next = prev.filter(a => a.id!==id);
-      safeLS.set('ra_accomplishments', JSON.stringify(next.map(serializeAcc)));
-      return next;
-    });
+    setAccomplishments(prev => prev.filter(a => a.id!==id));
   };
 
   return (
@@ -1214,6 +1335,464 @@ function Accomplishments({ accomplishments, setAccomplishments, onOpenModal }) {
 }
 
 // ═════════════════════════════════════════════════════════
+// CALENDAR — Event Modal
+// ═════════════════════════════════════════════════════════
+function EventModal({ mode, initial, onSave, onDelete, onCancel }) {
+  const isEdit = mode === 'edit';
+  const [title,      setTitle]      = useState(initial?.title      || '');
+  const [date,       setDate]       = useState(initial?.date        || calDateStr(new Date()));
+  const [startTime,  setStartTime]  = useState(initial?.startTime   || '09:00');
+  const [endTime,    setEndTime]    = useState(initial?.endTime     || '10:00');
+  const [color,      setColor]      = useState(initial?.color       || 'crimson');
+  const [tag,        setTag]        = useState(initial?.tag         || '');
+  const [notes,      setNotes]      = useState(initial?.notes       || '');
+  const [recurrence, setRecurrence] = useState(initial?.recurrence  || 'none');
+
+  useEffect(() => {
+    const h = e => { if (e.key === 'Escape') onCancel(); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [onCancel]);
+
+  const handleSave = () => {
+    if (!title.trim()) return;
+    playSound('button');
+    onSave({ id: initial?.id || Date.now(), title: title.trim(), date, startTime, endTime, color, tag: tag.trim(), notes: notes.trim(), recurrence });
+  };
+
+  const taStyle = { background:'rgba(255,255,255,0.04)', border:'1px solid var(--border)', borderRadius:'var(--radius-sm)', color:'var(--text)', fontSize:12.5, fontFamily:'inherit', padding:'8px 12px', resize:'vertical', minHeight:52, outline:'none', lineHeight:1.5, width:'100%', transition:'border-color 0.18s' };
+
+  return (
+    <div className="modal-backdrop" onClick={onCancel}>
+      <div className="modal-box" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <span className="modal-title">{isEdit ? 'Edit Event' : 'New Event'}</span>
+          <button className="btn ghost sm" style={{width:28,height:28,padding:0,fontSize:16,lineHeight:1}} onClick={onCancel}>×</button>
+        </div>
+
+        <div className="modal-body" style={{maxHeight:'calc(80vh - 120px)',overflowY:'auto'}}>
+          {/* Title */}
+          <div className="col g5">
+            <div className="mono t9 c3 uc">Title</div>
+            <div className="field">
+              <input value={title} onChange={e => setTitle(e.target.value)}
+                onKeyDown={e => { if (e.key==='Enter' && title.trim()) handleSave(); }}
+                placeholder="Event title…" autoFocus/>
+            </div>
+          </div>
+
+          {/* Date · Start · End */}
+          <div className="row g10 wrap">
+            <div className="col g5 flex1" style={{minWidth:120}}>
+              <div className="mono t9 c3 uc">Date</div>
+              <div className="field">
+                <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{colorScheme:'dark',width:'100%'}}/>
+              </div>
+            </div>
+            <div className="col g5" style={{width:88,flexShrink:0}}>
+              <div className="mono t9 c3 uc">Start</div>
+              <div className="field">
+                <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} style={{colorScheme:'dark',width:'100%'}}/>
+              </div>
+            </div>
+            <div className="col g5" style={{width:88,flexShrink:0}}>
+              <div className="mono t9 c3 uc">End</div>
+              <div className="field">
+                <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} style={{colorScheme:'dark',width:'100%'}}/>
+              </div>
+            </div>
+          </div>
+
+          {/* Color */}
+          <div className="col g6">
+            <div className="mono t9 c3 uc">Color</div>
+            <div className="cal-color-strip">
+              {CAL_COLORS.map(c => (
+                <div key={c.id} className={`cal-swatch ${color===c.id?'sel':''}`}
+                  title={c.label} style={{background:c.hex}} onClick={() => setColor(c.id)}/>
+              ))}
+            </div>
+          </div>
+
+          {/* Tag */}
+          <div className="col g5">
+            <div className="mono t9 c3 uc">Tag / category</div>
+            <div className="field">
+              <input value={tag} onChange={e => setTag(e.target.value)} placeholder="Work, Personal…"/>
+            </div>
+          </div>
+
+          {/* Recurrence */}
+          <div className="col g5">
+            <div className="mono t9 c3 uc">Recurrence</div>
+            <div className="seg" style={{width:'100%'}}>
+              {CAL_RECUR.map(r => (
+                <button key={r.id} className={`btn sm flex1 ${recurrence===r.id?'active':''}`}
+                  onClick={() => setRecurrence(r.id)}>{r.label}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div className="col g5">
+            <div className="mono t9 c3 uc">Notes</div>
+            <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Optional notes…" style={taStyle}
+              onFocus={e=>e.target.style.borderColor='var(--border-2)'}
+              onBlur={e=>e.target.style.borderColor='var(--border)'}/>
+          </div>
+        </div>
+
+        <div className="modal-footer">
+          {isEdit
+            ? <button className="btn ghost sm"
+                style={{color:'var(--red-2)',borderColor:'rgba(192,57,43,0.3)'}}
+                onClick={() => { playSound('button'); onDelete(); }}>Delete</button>
+            : <span/>
+          }
+          <div className="row g8">
+            <button className="btn ghost" onClick={onCancel}>Cancel</button>
+            <button className="btn primary" onClick={handleSave} disabled={!title.trim()}>
+              {isEdit ? 'Save Changes' : 'Save Event'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════
+// CALENDAR — Week View Screen
+// ═════════════════════════════════════════════════════════
+function CalendarScreen({ events, onSaveEvent, onDeleteEvent }) {
+  const [weekStart, setWeekStart] = useState(() => calWeekStart(new Date()));
+  const [modal,     setModal]     = useState(null);
+  const [nowMins,   setNowMins]   = useState(calNowMins);
+  const bodyRef = useRef(null);
+
+  // Tick the now-line every minute
+  useEffect(() => {
+    const id = setInterval(() => setNowMins(calNowMins()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Scroll to ~current time on first mount
+  useEffect(() => {
+    if (bodyRef.current) {
+      bodyRef.current.scrollTop = Math.max(0, (nowMins/60 - 1.5) * HOUR_H);
+    }
+  }, []); // eslint-disable-line
+
+  const prevWeek = () => { playSound('button'); setWeekStart(d => calAddDays(d,-7)); };
+  const nextWeek = () => { playSound('button'); setWeekStart(d => calAddDays(d, 7)); };
+  const goToday  = () => { playSound('button'); setWeekStart(calWeekStart(new Date())); };
+
+  const weekDays   = Array.from({length:7}, (_,i) => calAddDays(weekStart,i));
+  const todayStr   = calDateStr(new Date());
+  const todayDate  = new Date(); todayDate.setHours(0,0,0,0);
+  const isThisWeek = todayDate >= weekStart && todayDate < calAddDays(weekStart,7);
+  const expanded   = calExpandRecurring(events, weekStart);
+  const byDay      = weekDays.map(d => expanded.filter(ev => ev._idate === calDateStr(d)));
+
+  // Month label
+  const ws = weekStart, we = calAddDays(weekStart,6);
+  const mlabel = ws.getMonth()===we.getMonth()
+    ? `${CAL_MONTH[ws.getMonth()]} ${ws.getFullYear()}`
+    : `${CAL_MONTH[ws.getMonth()]} – ${CAL_MONTH[we.getMonth()]} ${we.getFullYear()}`;
+
+  const openSlot = (day, hour) => {
+    playSound('button');
+    setModal({ mode:'add', initial:{ date:calDateStr(day), startTime:calFromMins(hour*60), endTime:calFromMins(Math.min(hour*60+60, 23*60+30)) } });
+  };
+  const openNew  = () => { playSound('button'); setModal({ mode:'add', initial:{ date:todayStr } }); };
+  const openEdit = (ev, e) => { e.stopPropagation(); playSound('button'); setModal({ mode:'edit', initial:ev }); };
+
+  const handleSave = ev => { onSaveEvent(ev); setModal(null); };
+  const handleDel  = id => { onDeleteEvent(id); setModal(null); };
+
+  return (
+    <div className="screen" style={{padding:0,gap:0,overflow:'hidden'}}>
+
+      {/* Screen header */}
+      <div style={{padding:'28px 44px 16px',flexShrink:0,display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:16}}>
+        <div>
+          <div className="screen-eyebrow">Week view · {mlabel}</div>
+          <div className="screen-title">Calendar</div>
+        </div>
+        <div className="row ac g6">
+          <button className="btn ghost sm" onClick={prevWeek} title="Previous week">←</button>
+          <button className="btn ghost sm" onClick={goToday} style={{minWidth:52}}>Today</button>
+          <button className="btn ghost sm" onClick={nextWeek} title="Next week">→</button>
+          <button className="btn primary sm" onClick={openNew} style={{marginLeft:4}}>+ Event</button>
+        </div>
+      </div>
+
+      {/* Calendar panel */}
+      <div className="panel cal-panel" style={{margin:'0 44px 28px'}}>
+
+        {/* Day column headers */}
+        <div className="cal-col-header">
+          <div className="cal-gutter"/>
+          {weekDays.map((day,di) => {
+            const isToday = calDateStr(day) === todayStr;
+            return (
+              <div key={di} className={`cal-day-head ${isToday?'is-today':''}`}>
+                <div className="cal-day-name">{CAL_DAYS[day.getDay()]}</div>
+                <div className="cal-day-num">{day.getDate()}</div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Scrollable time-grid body */}
+        <div className="cal-body" ref={bodyRef}>
+
+          {/* Time axis labels */}
+          <div className="cal-time-gutter">
+            {CAL_HOURS.map(h => (
+              <div key={h} className="cal-time-label">
+                {h > 0 ? `${String(h).padStart(2,'0')}:00` : ''}
+              </div>
+            ))}
+          </div>
+
+          {/* Grid of day columns */}
+          <div className="cal-grid" style={{height: 24*HOUR_H}}>
+
+            {/* Current time bar — spans all columns */}
+            {isThisWeek && (
+              <div className="cal-now-line" style={{top: nowMins/60*HOUR_H}}>
+                <div className="cal-now-dot"/>
+              </div>
+            )}
+
+            {weekDays.map((day, di) => {
+              const isToday = calDateStr(day) === todayStr;
+              const laid    = calLayoutDay(byDay[di]);
+              return (
+                <div key={di}
+                  className={`cal-day-col ${isToday?'is-today':''}`}
+                  onClick={e => {
+                    const r = e.currentTarget.getBoundingClientRect();
+                    openSlot(day, Math.min(23, Math.floor((e.clientY-r.top)/HOUR_H)));
+                  }}>
+
+                  {/* Hour background cells */}
+                  {CAL_HOURS.map(h => <div key={h} className="cal-hour-cell"/>)}
+
+                  {/* Event blocks */}
+                  {laid.map(({ev, ci, n}) => {
+                    const sm  = calToMins(ev.startTime);
+                    const em  = calToMins(ev.endTime);
+                    const top = sm/60*HOUR_H;
+                    const h   = Math.max(18, (Math.max(em, sm+15)-sm)/60*HOUR_H);
+                    const hex = calColorHex(ev.color);
+                    const w   = 100/n;
+                    const l   = ci*w;
+                    const isCrimson = ev.color === 'crimson';
+                    return (
+                      <div key={ev.id+'_'+ev._idate}
+                        className="cal-event-block"
+                        style={{
+                          top, height:h,
+                          left:  `calc(${l}% + 2px)`,
+                          width: `calc(${w}% - 4px)`,
+                          background: hex+'26',
+                          borderLeftColor: hex,
+                        }}
+                        onClick={e => openEdit(ev, e)}>
+                        <div className="cal-event-title"
+                          style={{color: isCrimson ? '#e8a0a0' : '#ddd'}}>{ev.title}</div>
+                        {h > 30 && <div className="cal-event-time">{ev.startTime}–{ev.endTime}</div>}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {modal && (
+        <EventModal
+          mode={modal.mode}
+          initial={modal.initial}
+          onSave={handleSave}
+          onDelete={modal.mode==='edit' ? () => handleDel(modal.initial.id) : null}
+          onCancel={() => { playSound('button'); setModal(null); }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════
+// PROFILE MODAL
+// ═════════════════════════════════════════════════════════
+const LS_KEYS = [
+  'ra_profile','ra_tasks','ra_accomplishments',
+  'ra_pom_settings','ra_pom_sessions','ra_pom_daily',
+  'ra_timer_sessions','ra_bg','ra_filter','ra_sound_muted',
+  'ra_calendar_events',
+];
+
+function ProfileModal({ profile, isFirstRun, onSave, onCancel }) {
+  const [name,         setName]         = useState(profile.name     || '');
+  const [initials,     setInitials]     = useState(profile.initials || '');
+  const [confirmReset, setConfirmReset] = useState(false);
+  const tz = DEFAULT_PROFILE.timezone;
+
+  // Auto-derive initials from name when the user hasn't typed custom ones
+  const autoInitials = name.trim()
+    .split(/\s+/).filter(Boolean)
+    .map(w => w[0].toUpperCase())
+    .slice(0, 2).join('');
+  const displayInitials = (initials.trim() || autoInitials || '?');
+
+  // Only allow Escape in edit mode
+  useEffect(() => {
+    if (isFirstRun) return;
+    const h = e => { if (e.key === 'Escape') onCancel(); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [isFirstRun, onCancel]);
+
+  const handleSave = () => {
+    if (!name.trim()) return;
+    playSound('button');
+    onSave({ ...profile, name: name.trim(), initials: initials.trim() || autoInitials });
+  };
+
+  const handleReset = () => {
+    LS_KEYS.forEach(k => { try { localStorage.removeItem(k); } catch(e) {} });
+    window.location.reload();
+  };
+
+  return (
+    <div className="modal-backdrop"
+      style={isFirstRun ? {cursor:'default'} : undefined}
+      onClick={isFirstRun ? undefined : onCancel}>
+      <div className="modal-box" style={{width:'min(440px,92vw)'}} onClick={e => e.stopPropagation()}>
+
+        <div className="modal-header" style={{paddingBottom: isFirstRun ? 10 : 14}}>
+          <span className="modal-title">
+            {isFirstRun ? "Set Up Roberto's Aid" : 'Profile & Settings'}
+          </span>
+          {!isFirstRun && (
+            <button className="btn ghost sm"
+              style={{width:28,height:28,padding:0,fontSize:16,lineHeight:1}}
+              onClick={onCancel}>×</button>
+          )}
+        </div>
+
+        <div className="modal-body" style={{gap:16}}>
+
+          {isFirstRun && (
+            <div className="t12 c2" style={{lineHeight:1.7, marginTop:-4}}>
+              Create a local profile for this browser.{' '}
+              <span className="c3">Your data is saved on this device.</span>
+            </div>
+          )}
+
+          {/* Avatar + name row */}
+          <div className="row ac g14">
+            <div style={{
+              width:54, height:54, borderRadius:'50%', flexShrink:0,
+              border:'1.5px solid rgba(192,57,43,0.42)',
+              background:'linear-gradient(135deg,rgba(192,57,43,0.12),rgba(192,57,43,0.05))',
+              boxShadow:'0 0 20px rgba(192,57,43,0.12)',
+              display:'grid', placeItems:'center',
+            }}>
+              <span style={{fontFamily:'var(--font-mono)',fontSize:18,fontWeight:500,color:'#e8a0a0',letterSpacing:'0.06em'}}>
+                {displayInitials}
+              </span>
+            </div>
+            <div className="col g5 flex1">
+              <div className="mono t9 c3 uc">Display name</div>
+              <div className="field">
+                <input value={name}
+                  onChange={e => setName(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && name.trim()) handleSave(); }}
+                  placeholder="Your name…" autoFocus/>
+              </div>
+            </div>
+          </div>
+
+          {/* Initials override */}
+          <div className="row ac g12">
+            <div className="col g5" style={{width:88,flexShrink:0}}>
+              <div className="mono t9 c3 uc">Initials</div>
+              <div className="field">
+                <input value={initials}
+                  onChange={e => setInitials(e.target.value.toUpperCase().slice(0,3))}
+                  placeholder={autoInitials || '—'}
+                  style={{textAlign:'center',letterSpacing:'0.12em'}}
+                  className="mono t13"/>
+              </div>
+            </div>
+            <div className="mono t9 c3" style={{paddingTop:18,lineHeight:1.55}}>
+              Auto-computed from name.<br/>Override if needed.
+            </div>
+          </div>
+
+          {tz && (
+            <div className="col g5">
+              <div className="mono t9 c3 uc">Timezone</div>
+              <div className="mono t11 c2" style={{padding:'0 2px'}}>{tz}</div>
+            </div>
+          )}
+
+          <div className="divider"/>
+
+          {isFirstRun ? (
+            <div className="t11 c3" style={{lineHeight:1.65}}>
+              Everything stays on this device. Nothing is sent to a server.
+            </div>
+          ) : (
+            <div className="col g8">
+              <div className="mono t9 c3 uc">Local data</div>
+              <div className="t11 c3" style={{lineHeight:1.6}}>
+                All data — tasks, sessions, and accomplishments — is saved to this browser only.
+              </div>
+              {!confirmReset ? (
+                <button className="btn ghost sm"
+                  style={{alignSelf:'flex-start',color:'var(--red-2)',borderColor:'rgba(192,57,43,0.3)',marginTop:2}}
+                  onClick={() => setConfirmReset(true)}>
+                  Reset Local Data…
+                </button>
+              ) : (
+                <div className="col g8" style={{marginTop:2}}>
+                  <div className="mono t10" style={{color:'var(--red-2)'}}>
+                    Erase all saved data? This cannot be undone.
+                  </div>
+                  <div className="row g6">
+                    <button className="btn sm primary" onClick={handleReset}>Yes, erase everything</button>
+                    <button className="btn sm ghost" onClick={() => setConfirmReset(false)}>Cancel</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+        </div>
+
+        <div className="modal-footer">
+          {isFirstRun
+            ? <span className="mono t9 c3" style={{flex:1}}>Saved to this browser only · no account needed</span>
+            : <button className="btn ghost" onClick={onCancel}>Cancel</button>
+          }
+          <button className="btn primary lg" onClick={handleSave} disabled={!name.trim()}>
+            {isFirstRun ? 'Start' : 'Save Changes'}
+          </button>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════
 // APP ROOT
 // ═════════════════════════════════════════════════════════
 const INIT_POM = {
@@ -1223,18 +1802,64 @@ const INIT_POM = {
 };
 
 function App() {
-  const [screen,        setScreen]    = useState('landing');
-  const [pom,           setPom]       = useState(INIT_POM);
-  const [taskCols,      setTaskCols]  = useState(INIT_COLS);
-  const [timerSessions, setTimerSess] = useState([]);
-  const [accomplishments, setAccomplishments] = useState(() => {
-    try { return JSON.parse(safeLS.get('ra_accomplishments','[]')); } catch(e) { return []; }
-  });
-  const [acModal,   setAcModal]   = useState(null);
-  const [bgChoice,    setBgChoice]    = useState(() => safeLS.get('ra_bg',     'hall'));
-  const [bgFilter,    setBgFilter]    = useState(() => safeLS.get('ra_filter', 'clean'));
-  const [soundMuted,  _setSoundMuted] = useState(() => soundCtrl.muted);
+  const [screen, setScreen] = useState('landing');
 
+  // ── State — initialized from localStorage ──────────────
+  const [pom, setPom] = useState(() => {
+    const settings = loadState('ra_pom_settings', {});
+    const sessions  = loadState('ra_pom_sessions',  []);
+    const daily     = loadState('ra_pom_daily',     {});
+    const today     = new Date().toDateString();
+    const workDur   = settings.workDur          ?? INIT_POM.workDur;
+    return {
+      ...INIT_POM,
+      workDur,
+      breakDur:         settings.breakDur         ?? INIT_POM.breakDur,
+      longBreakDur:     settings.longBreakDur     ?? INIT_POM.longBreakDur,
+      roundsBeforeLong: settings.roundsBeforeLong ?? INIT_POM.roundsBeforeLong,
+      timeLeft:         workDur * 60,
+      sessions,
+      completedToday: daily.date === today ? (daily.completedToday || 0) : 0,
+    };
+  });
+
+  const [taskCols,      setTaskCols]  = useState(() => loadState('ra_tasks',          INIT_COLS));
+  const [timerSessions, setTimerSess] = useState(() => loadState('ra_timer_sessions', []));
+  const [accomplishments, setAccomplishments] = useState(() => loadState('ra_accomplishments', []));
+  const [calEvents,     setCalEvents] = useState(() => loadState('ra_calendar_events', []));
+  const [bgChoice,    setBgChoice]    = useState(() => loadState('ra_bg',      'hall'));
+  const [bgFilter,    setBgFilter]    = useState(() => loadState('ra_filter',  'clean'));
+  const [profile,     setProfile]     = useState(() => loadState('ra_profile', DEFAULT_PROFILE));
+  const [soundMuted,  _setSoundMuted] = useState(() => soundCtrl.muted);
+  const [acModal,     setAcModal]     = useState(null);
+  // Auto-open on first visit (when no name is saved yet)
+  const [profileOpen, setProfileOpen] = useState(() => !loadState('ra_profile', DEFAULT_PROFILE).name.trim());
+
+  // ── Persistence useEffects ─────────────────────────────
+  useEffect(() => {
+    saveState('ra_pom_settings', {
+      workDur:          pom.workDur,
+      breakDur:         pom.breakDur,
+      longBreakDur:     pom.longBreakDur,
+      roundsBeforeLong: pom.roundsBeforeLong,
+    });
+  }, [pom.workDur, pom.breakDur, pom.longBreakDur, pom.roundsBeforeLong]);
+
+  useEffect(() => {
+    saveState('ra_pom_sessions', pom.sessions.slice(-200));
+  }, [pom.sessions]);
+
+  useEffect(() => {
+    saveState('ra_pom_daily', { date: new Date().toDateString(), completedToday: pom.completedToday });
+  }, [pom.completedToday]);
+
+  useEffect(() => { saveState('ra_tasks',           taskCols);                          }, [taskCols]);
+  useEffect(() => { saveState('ra_timer_sessions',  timerSessions.slice(-200));         }, [timerSessions]);
+  useEffect(() => { saveState('ra_accomplishments', accomplishments.map(serializeAcc)); }, [accomplishments]);
+  useEffect(() => { saveState('ra_profile',         profile);                           }, [profile]);
+  useEffect(() => { saveState('ra_calendar_events', calEvents);                         }, [calEvents]);
+
+  // ── Sound ──────────────────────────────────────────────
   const toggleSound = () => {
     const next = !soundCtrl.muted;
     soundCtrl.muted = next;
@@ -1243,10 +1868,10 @@ function App() {
     if (!next) playSound('button');
   };
 
+  // ── Pomodoro tick ──────────────────────────────────────
   const pomRef = useRef(pom);
   pomRef.current = pom;
 
-  // Global Pomodoro tick
   useEffect(() => {
     if (!pom.running) return;
     const id = setInterval(() => {
@@ -1262,31 +1887,25 @@ function App() {
     return () => clearInterval(id);
   }, [pom.running]);
 
-  // Computed
-  const allSessions      = [...pom.sessions, ...timerSessions];
-  const taskFocusMap     = computeTaskFocus(allSessions);
-  const accomplishMap    = computeTaskAccomplishments(accomplishments);
-  const taskTitles       = [...taskCols.burner,...taskCols.active,...taskCols.completed].map(t => t.title);
+  // ── Computed ───────────────────────────────────────────
+  const allSessions   = [...pom.sessions, ...timerSessions];
+  const taskFocusMap  = computeTaskFocus(allSessions);
+  const accomplishMap = computeTaskAccomplishments(accomplishments);
+  const taskTitles    = [...taskCols.burner,...taskCols.active,...taskCols.completed].map(t => t.title);
 
-  const handleSetBgChoice = v => { setBgChoice(v); safeLS.set('ra_bg', v); playSound('button'); };
-  const handleSetBgFilter = v => { setBgFilter(v); safeLS.set('ra_filter', v); playSound('toggle_on'); };
+  // ── Handlers ───────────────────────────────────────────
+  const handleSetBgChoice = v => { setBgChoice(v); saveState('ra_bg', v);     playSound('button');    };
+  const handleSetBgFilter = v => { setBgFilter(v); saveState('ra_filter', v); playSound('toggle_on'); };
 
-  const handleOpenAccModal = accOrNull => {
-    playSound('button');
-    setAcModal(accOrNull ? {mode:'edit', acc:accOrNull} : {mode:'add', prefill:null});
-  };
-  const handlePostFromSession = prefill => {
-    playSound('button');
-    setAcModal({mode:'add', prefill});
-  };
+  const handleOpenAccModal    = accOrNull => { playSound('button'); setAcModal(accOrNull ? {mode:'edit', acc:accOrNull} : {mode:'add', prefill:null}); };
+  const handlePostFromSession = prefill   => { playSound('button'); setAcModal({mode:'add', prefill}); };
+
   const handleSaveAccomplishment = (data, moveLinkedToCompleted) => {
-    setAccomplishments(prev => {
-      const next = acModal.mode==='add'
+    setAccomplishments(prev =>
+      acModal.mode==='add'
         ? [...prev, {id:Date.now(),...data}]
-        : prev.map(a => a.id===acModal.acc.id ? {...acModal.acc,...data} : a);
-      safeLS.set('ra_accomplishments', JSON.stringify(next.map(serializeAcc)));
-      return next;
-    });
+        : prev.map(a => a.id===acModal.acc.id ? {...acModal.acc,...data} : a)
+    );
     if (moveLinkedToCompleted && data.linkedTask) {
       const key = data.linkedTask.toLowerCase().trim();
       let found=null, fromCol=null;
@@ -1303,10 +1922,34 @@ function App() {
     setAcModal(null);
   };
 
+  const handleSaveCalEvent = ev => {
+    setCalEvents(prev => prev.some(e => e.id===ev.id) ? prev.map(e => e.id===ev.id ? ev : e) : [...prev, ev]);
+  };
+  const handleDeleteCalEvent = id => { setCalEvents(prev => prev.filter(e => e.id!==id)); };
+
+  const handleSaveProfile = updated => {
+    setProfile(updated);
+    playSound('button');
+    setProfileOpen(false);
+  };
+
+  const profileSetupDone = !!profile.name.trim();
+
+  const profileModalNode = profileOpen && (
+    <ProfileModal
+      profile={profile}
+      isFirstRun={!profileSetupDone}
+      onSave={handleSaveProfile}
+      onCancel={profileSetupDone ? () => { playSound('button'); setProfileOpen(false); } : () => {}}
+    />
+  );
+
+  // ── Render ─────────────────────────────────────────────
   if (screen === 'landing') return (
     <>
       <Landing onNavigate={setScreen}/>
       {acModal && <AccomplishmentModal mode={acModal.mode} initial={acModal.mode==='edit'?acModal.acc:acModal.prefill} taskTitles={taskTitles} taskCols={taskCols} onSave={handleSaveAccomplishment} onCancel={() => { playSound('button'); setAcModal(null); }}/>}
+      {profileModalNode}
     </>
   );
 
@@ -1315,11 +1958,13 @@ function App() {
       <AppShell screen={screen} onNavigate={setScreen}
         bgChoice={bgChoice} bgFilter={bgFilter}
         onSetBgChoice={handleSetBgChoice} onSetBgFilter={handleSetBgFilter}
-        soundMuted={soundMuted} onToggleSound={toggleSound}>
+        soundMuted={soundMuted} onToggleSound={toggleSound}
+        onOpenProfile={() => { playSound('button'); setProfileOpen(true); }}>
         {screen==='pomodoro' && <Pomodoro pomState={pom} setPomState={setPom} taskTitles={taskTitles} onPostAccomplishment={handlePostFromSession}/>}
         {screen==='timer'    && <TimerScreen sessions={timerSessions} onAddSession={s=>setTimerSess(prev=>[...prev,s])} taskTitles={taskTitles} onPostAccomplishment={handlePostFromSession}/>}
         {screen==='tasks'    && <Tasks cols={taskCols} setCols={setTaskCols} focusData={taskFocusMap} accomplishmentMap={accomplishMap}/>}
         {screen==='accomplishments' && <Accomplishments accomplishments={accomplishments} setAccomplishments={setAccomplishments} onOpenModal={handleOpenAccModal}/>}
+        {screen==='calendar'       && <CalendarScreen events={calEvents} onSaveEvent={handleSaveCalEvent} onDeleteEvent={handleDeleteCalEvent}/>}
       </AppShell>
       {acModal && (
         <AccomplishmentModal
@@ -1331,6 +1976,7 @@ function App() {
           onCancel={() => { playSound('button'); setAcModal(null); }}
         />
       )}
+      {profileModalNode}
     </>
   );
 }
