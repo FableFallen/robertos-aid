@@ -1152,3 +1152,385 @@ svg    { display: block; }
 
 /* Drop zone tan */
 [data-theme="tan"] .import-drop-zone:hover { border-color: rgba(184,50,40,0.5); }
+
+/* ════════════════════════════════════════════════
+   NUMBER INPUTS — hide browser spinners
+════════════════════════════════════════════════ */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+
+/* ════════════════════════════════════════════════
+   BG PANEL — stable open animation (no transform snap)
+════════════════════════════════════════════════ */
+@keyframes bg-panel-enter {
+  from { opacity: 0; transform: translateY(calc(-50% - 6px)); }
+  to   { opacity: 1; transform: translateY(-50%); }
+}
+.bg-panel { animation: bg-panel-enter 0.18s cubic-bezier(0.4,0,0.2,1) !important; }
+
+/* ════════════════════════════════════════════════
+   TAN THEME — POMODORO READABILITY
+   The ring SVG uses hardcoded light colors so we
+   make the timer panel dark in tan mode.
+════════════════════════════════════════════════ */
+[data-theme="tan"] .panel.red-rim {
+  background: rgba(38, 20, 10, 0.80) !important;
+  backdrop-filter: blur(40px) saturate(0.9) !important;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.38), 0 0 56px rgba(184,50,40,0.18), inset 0 1px 0 rgba(255,200,150,0.07) !important;
+}
+/* Keep non-SVG text readable on the now-dark panel */
+[data-theme="tan"] .panel.red-rim .mono.c3 { color: rgba(255,255,255,0.40) !important; }
+[data-theme="tan"] .panel.red-rim .c3      { color: rgba(255,255,255,0.40) !important; }
+[data-theme="tan"] .panel.red-rim .c2      { color: rgba(255,255,255,0.72) !important; }
+[data-theme="tan"] .panel.red-rim .c1,
+[data-theme="tan"] .panel.red-rim .disp    { color: #f5f5f5 !important; }
+
+/* ════════════════════════════════════════════════
+   TASK OVERVIEW SIDE PANEL
+════════════════════════════════════════════════ */
+.task-overview-panel {
+  position: fixed;
+  right: 0; top: 0; bottom: 0;
+  width: min(300px, 82vw);
+  background: var(--modal-bg);
+  border-left: 1px solid var(--border-2);
+  backdrop-filter: blur(40px);
+  z-index: 400;
+  display: flex; flex-direction: column;
+  box-shadow: -6px 0 40px rgba(0,0,0,0.55);
+  animation: overview-in 0.22s cubic-bezier(0.4,0,0.2,1);
+}
+@keyframes overview-in {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+.task-ov-hdr {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+.task-ov-body {
+  flex: 1; overflow-y: auto; padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.task-ov-item {
+  padding: 9px 11px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.15s;
+}
+.task-ov-item:hover { border-color: var(--border-2); }
+.task-ov-item.overdue { border-left: 3px solid var(--red-2); }
+.task-ov-section {
+  font-family: var(--font-mono);
+  font-size: 9px; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--text-3);
+  padding: 6px 0 3px;
+}
+
+/* ════════════════════════════════════════════════
+   MOBILE / RESPONSIVE
+════════════════════════════════════════════════ */
+
+/* ── Tablet ≤900px ───────────────────────────── */
+@media (max-width: 900px) {
+  .screen { padding: 22px 28px; }
+  .bg-panel { width: 208px; }
+}
+
+/* ── Mobile ≤600px ───────────────────────────── */
+@media (max-width: 600px) {
+  /* Sidebar → fixed bottom nav */
+  .sidebar {
+    position: fixed !important;
+    bottom: 0; left: 0; right: 0; top: auto !important;
+    width: 100% !important; height: 52px !important;
+    flex-direction: row !important;
+    padding: 0 4px !important;
+    border-right: none !important;
+    border-top: 1px solid var(--border);
+    z-index: 100;
+    overflow-x: auto; scrollbar-width: none;
+    gap: 1px !important;
+  }
+  .sidebar::-webkit-scrollbar { display: none; }
+  .sidebar-logo { margin-bottom: 0 !important; margin-right: 0 !important; flex-shrink: 0; }
+  .sidebar-nav  { flex-direction: row !important; gap: 1px !important; flex: 1; }
+  .sidebar-btn  { width: 38px !important; height: 38px !important; flex-shrink: 0; margin: 0 !important; }
+  .sidebar-btn::before { display: none !important; }
+
+  /* Main area: scrollable, with padding for bottom nav */
+  .main { overflow-y: auto !important; overflow-x: hidden !important; padding-bottom: 60px !important; }
+
+  /* Screen: don't clip content, reduce padding */
+  .screen:not(.cal-screen) {
+    overflow: visible !important;
+    padding: 13px !important;
+    gap: 13px !important;
+    flex: none !important;
+    height: auto !important;
+  }
+  .cal-screen { overflow: visible !important; flex: none !important; height: auto !important; }
+
+  /* Screen header */
+  .screen-header { flex-wrap: wrap !important; }
+  .screen-actions { flex-wrap: wrap !important; justify-content: flex-end; }
+  .screen-title { font-size: 20px !important; }
+  .screen-eyebrow { display: none; }
+
+  /* Pomodoro / Timer: stack side panel below main panel */
+  .pomo-layout  { flex-direction: column !important; }
+  .timer-layout { flex-direction: column !important; }
+  .pomo-layout > .col,
+  .timer-layout > .col { width: 100% !important; flex-shrink: unset !important; }
+
+  /* Shrink Pomodoro SVG on mobile */
+  .pomo-layout svg { width: 220px !important; height: 220px !important; }
+
+  /* Tasks: vertical stack on mobile */
+  .tasks-board {
+    flex-direction: column !important;
+    flex-wrap: wrap !important;
+    overflow-x: unset !important;
+    overflow-y: visible !important;
+    gap: 12px !important;
+    min-height: unset !important;
+  }
+  .tasks-board > .task-col {
+    flex: none !important;
+    min-width: unset !important;
+    width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* Calendar: trim side margins */
+  .cal-panel { margin-left: 8px !important; margin-right: 8px !important; }
+  .cal-screen-hdr { padding: 13px 13px 10px !important; }
+  .cal-gutter, .cal-time-gutter { width: 36px !important; }
+  .cal-event-time  { display: none; }
+  .cal-day-name    { font-size: 7px; letter-spacing: 0.06em; }
+  .cal-day-num     { font-size: 13px; width: 22px; height: 22px; }
+
+  /* BG panel: centered modal on mobile */
+  .bg-panel {
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: min(88vw, 260px) !important;
+    animation: modal-enter 0.2s ease !important;
+  }
+
+  /* Modals: use full width */
+  .modal-box { width: min(96vw, 480px) !important; max-height: 88vh !important; }
+
+  /* Task overview: full-ish width on mobile */
+  .task-overview-panel { width: min(90vw, 300px) !important; }
+
+  /* Accomplishment stats: wrap */
+  .screen .row.g10 > .panel.flex1 { min-width: 70px; }
+}
+
+/* ── Very small ≤430px ───────────────────────── */
+@media (max-width: 430px) {
+  .screen:not(.cal-screen) { padding: 10px !important; gap: 10px !important; }
+  .screen-title { font-size: 18px !important; }
+  .pomo-layout svg { width: 190px !important; height: 190px !important; }
+  .modal-box { max-height: 92vh !important; }
+}
+
+/* ════════════════════════════════════════════════
+   SCREEN CONTENT — subtle appear (no black flash)
+════════════════════════════════════════════════ */
+@keyframes screen-in {
+  from { opacity: 0.88; transform: translateY(3px); }
+  to   { opacity: 1;    transform: translateY(0);   }
+}
+.screen { animation: screen-in 0.14s ease; }
+
+/* ════════════════════════════════════════════════
+   NUM CTRL — custom number wheel control
+════════════════════════════════════════════════ */
+.num-ctrl {
+  display: inline-flex; align-items: stretch;
+  height: 34px;
+  background: var(--field-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden; flex-shrink: 0;
+  transition: border-color 0.15s;
+  user-select: none;
+}
+.num-ctrl:hover  { border-color: var(--border-2); }
+.num-ctrl-btn {
+  width: 26px; flex-shrink: 0;
+  background: transparent; border: none; outline: none;
+  color: var(--text-3); font-size: 15px; line-height: 1;
+  cursor: pointer; display: grid; place-items: center;
+  transition: color 0.12s, background 0.12s;
+  font-family: inherit;
+}
+.num-ctrl-btn:hover  { color: var(--text); background: var(--surface-2); }
+.num-ctrl-btn:active { background: var(--surface-3); }
+.num-ctrl-val {
+  min-width: 36px; flex: 1;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 13px; font-weight: 500;
+  color: var(--text); text-align: center; cursor: text;
+  border-left: 1px solid var(--border); border-right: 1px solid var(--border);
+  padding: 0 4px; line-height: 1;
+}
+.num-ctrl-inp {
+  min-width: 36px; flex: 1;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 13px; font-weight: 500;
+  color: var(--text); text-align: center;
+  border: none; outline: none; background: transparent;
+  border-left: 1px solid var(--border); border-right: 1px solid var(--border);
+  padding: 0 4px;
+}
+@keyframes num-flash {
+  0%   { transform: scale(1.14); color: var(--red-2); }
+  100% { transform: scale(1);    color: var(--text);  }
+}
+.num-ctrl-flash .num-ctrl-val { animation: num-flash 0.16s ease; }
+
+/* ════════════════════════════════════════════════
+   SIDEBAR THEME PILL
+════════════════════════════════════════════════ */
+.sidebar-theme-pill {
+  font-family: var(--font-mono); font-size: 6.5px;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: rgba(255,255,255,0.25);
+  padding: 3px 0 2px; text-align: center; width: 100%;
+  line-height: 1; border-top: 1px solid var(--border);
+  margin-top: 6px;
+  transition: color 0.2s;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+[data-theme="tan"] .sidebar-theme-pill { color: rgba(60,40,10,0.35); border-color: var(--border); }
+/* Hide on mobile bottom nav (too cramped) */
+@media (max-width: 600px) { .sidebar-theme-pill { display: none; } }
+
+/* ════════════════════════════════════════════════
+   BG SETTINGS PANEL — section labels
+════════════════════════════════════════════════ */
+.bg-sect {
+  font-family: var(--font-mono); font-size: 9px;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--text-3); margin-bottom: 8px;
+  margin-top: 0; padding-top: 0;
+}
+.bg-sect-divider {
+  height: 1px; background: var(--border);
+  margin: 12px 0;
+}
+
+/* ════════════════════════════════════════════════
+   TASK OVERVIEW — improved readability
+════════════════════════════════════════════════ */
+.task-ov-item {
+  padding: 10px 12px !important;
+}
+.task-ov-item:hover { background: var(--surface) !important; }
+.task-ov-section {
+  font-size: 8px !important;
+  letter-spacing: 0.22em !important;
+  padding: 8px 0 4px !important;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+.task-ov-section:first-child { border-top: none; margin-top: 0; }
+.task-ov-body { gap: 4px !important; }
+
+/* ════════════════════════════════════════════════
+   UI MOTION MODES
+════════════════════════════════════════════════ */
+
+/* Ambient: subtle pulse on active nav + primary buttons */
+@keyframes ambient-nav-pulse {
+  0%, 100% { box-shadow: none; }
+  50%       { box-shadow: 0 0 16px rgba(192,57,43,0.22); }
+}
+@keyframes ambient-btn-breathe {
+  0%, 100% { box-shadow: 0 0 20px rgba(192,57,43,0.08); }
+  50%       { box-shadow: 0 0 28px rgba(192,57,43,0.28); }
+}
+.motion-ambient .sidebar-btn.active {
+  animation: ambient-nav-pulse 3.5s ease-in-out infinite;
+}
+.motion-ambient .btn.primary {
+  animation: ambient-btn-breathe 4s ease-in-out infinite;
+}
+
+/* Orbit: slow drifting radial glow over background */
+@keyframes orbit-a {
+  0%   { transform: translate(0,0)     scale(1); }
+  33%  { transform: translate(3%,2%)   scale(1.04); }
+  66%  { transform: translate(-2%,3%)  scale(0.97); }
+  100% { transform: translate(0,0)     scale(1); }
+}
+@keyframes orbit-b {
+  0%   { transform: translate(0,0)     scale(1); }
+  33%  { transform: translate(-3%,-2%) scale(0.97); }
+  66%  { transform: translate(2%,-3%)  scale(1.05); }
+  100% { transform: translate(0,0)     scale(1); }
+}
+.motion-orbit .app-bg-overlay {
+  animation: orbit-a 14s ease-in-out infinite;
+  will-change: transform;
+}
+.motion-orbit .app-bg::after {
+  content: '';
+  position: absolute; inset: 0; z-index: 4;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 50% 40% at 25% 35%, rgba(192,57,43,0.05) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 50% at 75% 65%, rgba(192,57,43,0.04) 0%, transparent 70%);
+  animation: orbit-b 18s ease-in-out infinite;
+  will-change: transform;
+}
+/* Disable motion for prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .motion-ambient .sidebar-btn.active,
+  .motion-ambient .btn.primary,
+  .motion-orbit .app-bg-overlay,
+  .motion-orbit .app-bg::after { animation: none !important; }
+}
+
+/* ════════════════════════════════════════════════
+   PDF VIEWER MODAL
+════════════════════════════════════════════════ */
+.pdf-viewer-modal {
+  width: min(900px, 94vw);
+  height: min(85vh, 700px);
+  background: rgba(6,6,6,0.99);
+  border: 1px solid var(--border-2);
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.75);
+  animation: modal-enter 0.2s cubic-bezier(0.4,0,0.2,1);
+}
+.pdf-viewer-hdr {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0; gap: 12px;
+  background: rgba(8,8,8,0.95);
+}
+.pdf-viewer-frame {
+  flex: 1; border: none; background: #fff;
+  display: block; width: 100%; height: 100%;
+}
+.pdf-viewer-fallback {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 14px; padding: 32px; text-align: center;
+}

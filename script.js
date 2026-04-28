@@ -189,6 +189,7 @@ const Icons = {
   person:          <SvgIcon size={16} d={<><circle cx="10" cy="7.5" r="3"/><path d="M3.5,17.5 C3.5,14 6,12 10,12 C14,12 16.5,14 16.5,17.5"/></>}/>,
   calendar:        <SvgIcon d={<><rect x="3" y="4" width="14" height="13" rx="1.5"/><line x1="3" y1="8" x2="17" y2="8"/><line x1="7" y1="2" x2="7" y2="6"/><line x1="13" y1="2" x2="13" y2="6"/></>}/>,
   habits:          <SvgIcon d={<><path d="M4.5 10a5.5 5.5 0 1 0 5.5-5.5"/><polyline points="6,4.5 10,4.5 10,8.5"/><polyline points="7,10.5 9,13 13.5,7"/></>}/>,
+  importExport:    <SvgIcon size={16} d={<><polyline points="5,8 9,4 13,8"/><line x1="9" y1="4" x2="9" y2="13"/><polyline points="7,12 11,16 15,12"/><line x1="11" y1="16" x2="11" y2="7"/></>}/>,
 };
 
 const NAV = [
@@ -447,7 +448,8 @@ function Landing({ onNavigate }) {
 }
 
 // ─── Sidebar ──────────────────────────────────────────────
-function Sidebar({ screen, onNavigate, bgPanelOpen, onToggleBgPanel, soundMuted, onToggleSound, onOpenProfile }) {
+function Sidebar({ screen, onNavigate, bgPanelOpen, onToggleBgPanel, soundMuted, onToggleSound, onOpenProfile, onOpenImportExport, theme }) {
+  const themeLabel = theme === 'tan' ? 'Light Tan' : 'Dark Space';
   return (
     <nav className="sidebar">
       <button className="sidebar-logo"
@@ -471,6 +473,12 @@ function Sidebar({ screen, onNavigate, bgPanelOpen, onToggleBgPanel, soundMuted,
         data-tip="Background">
         {Icons.backdrop}
       </button>
+      <button className="sidebar-btn"
+        style={{marginTop:4}}
+        onClick={onOpenImportExport}
+        data-tip="Import / Export">
+        {Icons.importExport}
+      </button>
       <button className={`sidebar-btn ${!soundMuted ? 'active' : ''}`}
         style={{marginTop:4}}
         onClick={onToggleSound}
@@ -483,12 +491,19 @@ function Sidebar({ screen, onNavigate, bgPanelOpen, onToggleBgPanel, soundMuted,
         data-tip="Profile & Settings">
         {Icons.person}
       </button>
+      <div className="sidebar-theme-pill" title={`Theme: ${themeLabel}`}>{themeLabel}</div>
     </nav>
   );
 }
 
 // ─── Background Settings Panel ────────────────────────────
-function BgSettingsPanel({ bgChoice, bgFilter, onSetBgChoice, onSetBgFilter, onClose }) {
+const UI_MOTIONS = [
+  { id: 'still',   label: 'Still',   desc: 'No motion' },
+  { id: 'ambient', label: 'Ambient', desc: 'Subtle glow' },
+  { id: 'orbit',   label: 'Orbit',   desc: 'Cosmic drift' },
+];
+
+function BgSettingsPanel({ bgChoice, bgFilter, onSetBgChoice, onSetBgFilter, onClose, theme, onSetTheme, uiMotion, onSetMotion }) {
   useEffect(() => {
     const h = e => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', h);
@@ -496,13 +511,35 @@ function BgSettingsPanel({ bgChoice, bgFilter, onSetBgChoice, onSetBgFilter, onC
   }, [onClose]);
 
   return (
-    <div className="bg-panel">
+    <div className="bg-panel" style={{overflowY:'auto',maxHeight:'90vh'}}>
       <div className="row jb ac" style={{marginBottom:14}}>
-        <div className="mono t9 c3 uc ls-wide">Background</div>
+        <div className="mono t9 c3 uc ls-wide">Appearance</div>
         <button className="btn ghost sm" style={{width:24,height:24,padding:0,fontSize:15,lineHeight:1}}
           onClick={onClose}>×</button>
       </div>
-      <div className="bg-thumb-row" style={{marginBottom:16}}>
+
+      {/* ── Theme ─────────────────────────────── */}
+      {onSetTheme && (
+        <>
+          <div className="bg-sect">Theme</div>
+          <div className="row g5" style={{marginBottom:4}}>
+            {THEMES.map(t => (
+              <button key={t.id}
+                className={`btn sm ${theme===t.id?'primary':''}`}
+                style={{flex:1,fontSize:10}}
+                onClick={() => { playSound('toggle_on'); onSetTheme(t.id); }}>
+                {theme===t.id ? '● ' : ''}{t.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      <div className="bg-sect-divider"/>
+
+      {/* ── Background ────────────────────────── */}
+      <div className="bg-sect">Background</div>
+      <div className="bg-thumb-row" style={{marginBottom:4}}>
         {BACKGROUNDS.map(bg => (
           <button key={bg.id}
             className={`bg-thumb-btn ${bgChoice === bg.id ? 'active' : ''}`}
@@ -519,8 +556,12 @@ function BgSettingsPanel({ bgChoice, bgFilter, onSetBgChoice, onSetBgFilter, onC
           </button>
         ))}
       </div>
-      <div className="mono t9 c3 uc ls-wide" style={{marginBottom:8}}>Filter</div>
-      <div className="filter-btn-row">
+
+      <div className="bg-sect-divider"/>
+
+      {/* ── Filter ────────────────────────────── */}
+      <div className="bg-sect">Filter</div>
+      <div className="filter-btn-row" style={{marginBottom:4}}>
         {FILTER_OPTIONS.map(f => (
           <button key={f.id}
             className={`filter-btn ${bgFilter === f.id ? 'active' : ''}`}
@@ -531,17 +572,50 @@ function BgSettingsPanel({ bgChoice, bgFilter, onSetBgChoice, onSetBgFilter, onC
           </button>
         ))}
       </div>
+
+      {onSetMotion && (
+        <>
+          <div className="bg-sect-divider"/>
+          {/* ── UI Motion ───────────────────────── */}
+          <div className="bg-sect">UI Motion</div>
+          <div className="filter-btn-row">
+            {UI_MOTIONS.map(m => (
+              <button key={m.id}
+                className={`filter-btn ${(uiMotion||'still') === m.id ? 'active' : ''}`}
+                onClick={() => { playSound('toggle_on'); onSetMotion(m.id); }}>
+                <span style={{width:6,height:6,borderRadius:'50%',flexShrink:0,background:(uiMotion||'still')===m.id?'var(--red-2)':'var(--text-3)',transition:'background 0.15s'}}/>
+                <span style={{flex:1}}>{m.label}</span>
+                <span style={{color:'var(--text-3)',fontSize:9}}>{m.desc}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
 // ─── App Shell ────────────────────────────────────────────
-function AppShell({ screen, onNavigate, bgChoice, bgFilter, onSetBgChoice, onSetBgFilter, soundMuted, onToggleSound, onOpenProfile, children }) {
-  const [showBgPanel, setShowBgPanel] = useState(false);
+function AppShell({ screen, onNavigate, bgChoice, bgFilter, onSetBgChoice, onSetBgFilter, soundMuted, onToggleSound, onOpenProfile, theme, onSetTheme, uiMotion, onSetMotion, children }) {
+  const [showBgPanel,      setShowBgPanel]      = useState(false);
+  const [showImportExport, setShowImportExport] = useState(false);
   const bg = BACKGROUNDS.find(b => b.id === bgChoice) || BACKGROUNDS[0];
 
+  const handleGlobalImport = (data, mode) => {
+    if (mode === 'replace') {
+      LS_KEYS.forEach(k => { try { localStorage.removeItem(k); } catch(e) {} });
+    }
+    Object.entries(data).forEach(([k, v]) => {
+      if (LS_KEYS.includes(k)) {
+        try { localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)); } catch(e) {}
+      }
+    });
+    playSound('notification');
+    window.location.reload();
+  };
+
   return (
-    <div className={`app-shell filter-${bgFilter}`}>
+    <div className={`app-shell filter-${bgFilter} motion-${uiMotion||'still'}`}>
       <div className="app-bg">
         {bg.type === 'video' ? (
           <>
@@ -561,6 +635,8 @@ function AppShell({ screen, onNavigate, bgChoice, bgFilter, onSetBgChoice, onSet
         soundMuted={soundMuted}
         onToggleSound={onToggleSound}
         onOpenProfile={onOpenProfile}
+        onOpenImportExport={() => { playSound('button'); setShowImportExport(true); }}
+        theme={theme}
       />
       {showBgPanel && (
         <>
@@ -570,10 +646,18 @@ function AppShell({ screen, onNavigate, bgChoice, bgFilter, onSetBgChoice, onSet
             onSetBgChoice={v => { onSetBgChoice(v); }}
             onSetBgFilter={v => { onSetBgFilter(v); }}
             onClose={() => setShowBgPanel(false)}
+            theme={theme} onSetTheme={onSetTheme}
+            uiMotion={uiMotion} onSetMotion={onSetMotion}
           />
         </>
       )}
-      <div className="main fade-in" onClick={() => showBgPanel && setShowBgPanel(false)}>
+      {showImportExport && (
+        <GlobalImportExportModal
+          onImport={handleGlobalImport}
+          onCancel={() => { playSound('button'); setShowImportExport(false); }}
+        />
+      )}
+      <div className="main" onClick={() => showBgPanel && setShowBgPanel(false)}>
         {children}
       </div>
     </div>
@@ -596,20 +680,62 @@ function Header({ eyebrow, title, actions }) {
 // POMODORO
 // ═════════════════════════════════════════════════════════
 
-function DurInput({ label, value, onChange, chips }) {
-  const [local, setLocal] = useState(String(value));
-  useEffect(() => setLocal(String(value)), [value]);
-  const commit = () => { const n = Math.max(1, parseInt(local)||1); onChange(n); setLocal(String(n)); };
+// ─── NumCtrl — hover-scroll number wheel ─────────────────
+function NumCtrl({ value, onChange, min = 0, max = 999 }) {
+  const [editing, setEditing] = useState(false);
+  const [draft,   setDraft]   = useState('');
+  const [flash,   setFlash]   = useState(false);
+  const ref    = useRef(null);
+  const valRef = useRef({ value, min, max, onChange });
+  valRef.current = { value, min, max, onChange };
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const onWheel = e => {
+      e.preventDefault();
+      const { value, min, max, onChange } = valRef.current;
+      const next = Math.max(min, Math.min(max, value + (e.deltaY < 0 ? 1 : -1)));
+      if (next !== value) { onChange(next); setFlash(true); setTimeout(() => setFlash(false), 160); }
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+
+  const clamp = n => Math.max(min, Math.min(max, n));
+  const nudge = d => {
+    const next = clamp(value + d);
+    if (next !== value) { onChange(next); setFlash(true); setTimeout(() => setFlash(false), 160); }
+  };
+  const startEdit  = () => { setDraft(String(value)); setEditing(true); };
+  const commitEdit = () => {
+    const n = parseInt(draft);
+    onChange(clamp(isNaN(n) ? value : n));
+    setEditing(false);
+  };
+
+  return (
+    <div ref={ref} className={`num-ctrl${flash ? ' num-ctrl-flash' : ''}`}>
+      <button className="num-ctrl-btn" onClick={() => nudge(-1)} tabIndex={-1}>−</button>
+      {editing
+        ? <input className="num-ctrl-inp" autoFocus
+            value={draft}
+            onChange={e => setDraft(e.target.value.replace(/[^0-9]/g,''))}
+            onBlur={commitEdit}
+            onKeyDown={e => { if(e.key==='Enter') commitEdit(); if(e.key==='Escape'){ setEditing(false); } }}/>
+        : <div className="num-ctrl-val" onClick={startEdit}>{value}</div>
+      }
+      <button className="num-ctrl-btn" onClick={() => nudge(1)} tabIndex={-1}>+</button>
+    </div>
+  );
+}
+
+function DurInput({ label, value, onChange, chips, min=1, max=480 }) {
   return (
     <div className="col g5">
       <div className="mono t9 c3 uc">{label}</div>
       <div className="row ac g6">
-        <div className="field" style={{width:58,flexShrink:0}}>
-          <input type="number" min="1" max="480" value={local}
-            onChange={e => setLocal(e.target.value)} onBlur={commit}
-            onKeyDown={e => e.key === 'Enter' && commit()}
-            style={{width:'100%',textAlign:'center'}} className="mono t13"/>
-        </div>
+        <NumCtrl value={value} onChange={onChange} min={min} max={max}/>
         <span className="mono t9 c3" style={{flexShrink:0}}>min</span>
       </div>
       <div className="row g4 wrap">
@@ -681,7 +807,7 @@ function Pomodoro({ pomState: p, setPomState, taskTitles, onPostAccomplishment }
     <div className="screen">
       <Header eyebrow={`Round ${round} · ${phaseLabel} · ${completedToday} completed today`} title="Pomodoro"/>
 
-      <div className="row g20 flex1" style={{minHeight:0}}>
+      <div className="pomo-layout row g20 flex1" style={{minHeight:0}}>
         <div className="panel flex1 col ac jc red-rim of-h rel">
           <div className="abs" style={{inset:0,background:'radial-gradient(circle at center,rgba(192,57,43,0.06),transparent 60%)',pointerEvents:'none'}}/>
           <div className="mono t10 c3 uc ls-wide" style={{position:'absolute',top:24,left:0,right:0,textAlign:'center',textShadow:'0 1px 4px rgba(0,0,0,0.8)'}}>
@@ -738,11 +864,8 @@ function Pomodoro({ pomState: p, setPomState, taskTitles, onPostAccomplishment }
             <div className="col g5">
               <div className="mono t9 c3 uc">Rounds before long break <span style={{fontWeight:400}}>(0 = off)</span></div>
               <div className="row ac g6">
-                <div className="field" style={{width:58,flexShrink:0}}>
-                  <input type="number" min="0" max="20" value={roundsBeforeLong}
-                    onChange={e => setPomState(s=>({...s,roundsBeforeLong:Math.max(0,parseInt(e.target.value)||0)}))}
-                    style={{width:'100%',textAlign:'center'}} className="mono t13"/>
-                </div>
+                <NumCtrl value={roundsBeforeLong} min={0} max={20}
+                  onChange={v => setPomState(s=>({...s,roundsBeforeLong:v}))}/>
                 <span className="mono t9 c3">rounds</span>
                 <div className="row g4">
                   {[2,3,4].map(n => (
@@ -887,7 +1010,7 @@ function TimerScreen({ sessions, onAddSession, taskTitles, onPostAccomplishment 
         }
       />
 
-      <div className="row g24 flex1" style={{minHeight:0}}>
+      <div className="timer-layout row g24 flex1" style={{minHeight:0}}>
         <div className="panel flex1 col ac jc of-h rel">
           <div className="abs" style={{inset:0,background:'radial-gradient(circle at center,rgba(192,57,43,0.04),transparent 55%)',pointerEvents:'none'}}/>
           <div className="mono t10 c3 uc ls-wide" style={{marginBottom:24,textShadow:'0 1px 4px rgba(0,0,0,0.8)'}}>
@@ -974,6 +1097,91 @@ function TimerScreen({ sessions, onAddSession, taskTitles, onPostAccomplishment 
 }
 
 // ═════════════════════════════════════════════════════════
+// TASK OVERVIEW PANEL
+// ═════════════════════════════════════════════════════════
+function TaskOverviewPanel({ cols, onClose }) {
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  const openTasks = [
+    ...cols.burner.map(t => ({...t, _col:'burner'})),
+    ...cols.active.map(t => ({...t, _col:'active'})),
+  ];
+  const completedTasks = cols.completed.map(t => ({...t, _col:'completed'}));
+
+  const isOverdue = t => {
+    if (!t.dueDate) return false;
+    return new Date(t.dueDate+'T00:00:00') < today;
+  };
+
+  const withDue    = openTasks.filter(t => t.dueDate).sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate));
+  const withoutDue = openTasks.filter(t => !t.dueDate);
+
+  const renderItem = t => {
+    const ps      = PRIO_STYLE[t.priority] || PRIO_STYLE.med;
+    const meta    = COL_META[t._col] || COL_META.active;
+    const overdue = isOverdue(t);
+    return (
+      <div key={t.id} className={`task-ov-item${overdue?' overdue':''}`}>
+        <div className="row ac g6 jb">
+          <span style={{fontSize:12,fontWeight:500,lineHeight:1.35,flex:1,color:overdue?'var(--red-2)':'var(--text)'}}>{t.title}</span>
+          <span className="tag" style={{background:ps.bg,borderColor:ps.bd,color:ps.c,fontSize:8,flexShrink:0}}>{t.priority}</span>
+        </div>
+        <div className="row ac g5 wrap" style={{marginTop:5}}>
+          {t.label && <span className="tag" style={{fontSize:8}}>{t.label}</span>}
+          <span className="mono" style={{fontSize:8,color:meta.accent}}>{meta.label}</span>
+          {t.dueDate && (
+            <span className="mono" style={{fontSize:8,color:overdue?'var(--red-2)':'var(--text-3)'}}>
+              {overdue ? '⚠ ' : ''}Due {new Date(t.dueDate+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}
+            </span>
+          )}
+          {t.est && <span className="mono" style={{fontSize:8,color:'var(--text-3)'}}>⏱ {t.est}</span>}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <>
+      <div style={{position:'fixed',inset:0,zIndex:399}} onClick={onClose}/>
+      <div className="task-overview-panel">
+        <div className="task-ov-hdr">
+          <div>
+            <div className="mono t9 c3 uc ls-wide">Task Overview</div>
+            <div className="mono t9 c3" style={{marginTop:2}}>
+              {cols.burner.length+cols.active.length} open · {cols.completed.length} done
+            </div>
+          </div>
+          <button className="btn ghost sm" style={{width:26,height:26,padding:0,fontSize:16,lineHeight:1}} onClick={onClose}>×</button>
+        </div>
+        <div className="task-ov-body">
+          {withDue.length > 0 && (
+            <>
+              <div className="task-ov-section">Upcoming</div>
+              {withDue.map(renderItem)}
+            </>
+          )}
+          {withoutDue.length > 0 && (
+            <>
+              <div className="task-ov-section" style={{marginTop: withDue.length ? 8 : 0}}>No Due Date</div>
+              {withoutDue.map(renderItem)}
+            </>
+          )}
+          {completedTasks.length > 0 && (
+            <>
+              <div className="task-ov-section" style={{marginTop:8}}>Completed</div>
+              {completedTasks.map(renderItem)}
+            </>
+          )}
+          {withDue.length===0 && withoutDue.length===0 && completedTasks.length===0 && (
+            <div className="mono t10 c3 tc" style={{padding:'24px 0'}}>No tasks yet.</div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ═════════════════════════════════════════════════════════
 // TASKS
 // ═════════════════════════════════════════════════════════
 const INIT_COLS = {
@@ -1009,6 +1217,7 @@ function TaskModal({ mode, initial, onSave, onCancel }) {
   const [label,    setLabel]    = useState(initial?.label    || '');
   const [est,      setEst]      = useState(initial?.est      || '');
   const [priority, setPriority] = useState(initial?.priority || 'med');
+  const [dueDate,  setDueDate]  = useState(initial?.dueDate  || '');
   const isEdit = mode === 'edit';
 
   useEffect(() => {
@@ -1017,7 +1226,7 @@ function TaskModal({ mode, initial, onSave, onCancel }) {
     return () => window.removeEventListener('keydown', h);
   }, [onCancel]);
 
-  const handleSave = () => { if (!title.trim()) return; onSave({title:title.trim(),col,label,est,priority}); };
+  const handleSave = () => { if (!title.trim()) return; onSave({title:title.trim(),col,label,est,priority,dueDate}); };
 
   return (
     <div className="modal-backdrop" onClick={onCancel}>
@@ -1049,6 +1258,10 @@ function TaskModal({ mode, initial, onSave, onCancel }) {
             <div className="mono t9 c3 uc">Priority</div>
             <div className="seg">{[['low','Low'],['med','Medium'],['high','High']].map(([v,l]) => (<button key={v} className={`btn sm ${priority===v?('active'+(v==='high'?' red':'')):''}`} onClick={() => setPriority(v)}>{l}</button>))}</div>
           </div>
+          <div className="col g5">
+            <div className="mono t9 c3 uc">Due Date <span style={{fontWeight:400,textTransform:'none',opacity:0.65}}>(optional)</span></div>
+            <div className="field"><input type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)} style={{colorScheme:'dark',width:'100%'}}/></div>
+          </div>
         </div>
         <div className="modal-footer">
           <button className="btn ghost" onClick={onCancel}>Cancel</button>
@@ -1060,9 +1273,10 @@ function TaskModal({ mode, initial, onSave, onCancel }) {
 }
 
 function Tasks({ cols, setCols, focusData, accomplishmentMap }) {
-  const [modal,    setModal]    = useState(null);
-  const [dragging, setDragging] = useState(null);
-  const [dragOver, setDragOver] = useState(null);
+  const [modal,        setModal]        = useState(null);
+  const [dragging,     setDragging]     = useState(null);
+  const [dragOver,     setDragOver]     = useState(null);
+  const [showOverview, setShowOverview] = useState(false);
 
   const openAddModal  = () => { playSound('button'); setModal({mode:'add'}); };
   const openEditModal = (col, task) => { playSound('button'); setModal({mode:'edit',col,task}); };
@@ -1108,8 +1322,13 @@ function Tasks({ cols, setCols, focusData, accomplishmentMap }) {
   return (
     <div className="screen">
       <Header eyebrow={`${openCount} open · ${cols.completed.length} done`} title="Tasks"
-        actions={<button className="btn primary" onClick={openAddModal}>+ New Task</button>}/>
-      <div className="row g12 flex1" style={{minHeight:0}}>
+        actions={
+          <div className="row ac g8">
+            <button className="btn ghost" onClick={() => { playSound('button'); setShowOverview(v => !v); }}>Overview</button>
+            <button className="btn primary" onClick={openAddModal}>+ New Task</button>
+          </div>
+        }/>
+      <div className="tasks-board row g12 flex1" style={{minHeight:0}}>
         {COL_KEYS.map((col,ci) => {
           const {label,desc,accent} = COL_META[col];
           const tasks=cols[col], isTarget=dragOver===col, isDimmed=col==='completed';
@@ -1155,6 +1374,7 @@ function Tasks({ cols, setCols, focusData, accomplishmentMap }) {
         })}
       </div>
       {modal && <TaskModal mode={modal.mode} initial={modal.task?{...modal.task,col:modal.col}:null} onSave={saveTask} onCancel={closeModal}/>}
+      {showOverview && <TaskOverviewPanel cols={cols} onClose={() => setShowOverview(false)}/>}
     </div>
   );
 }
@@ -1249,21 +1469,15 @@ function AccomplishmentModal({ mode, initial, taskTitles, taskCols, onSave, onCa
             <div className="col g5 flex1">
               <div className="mono t9 c3 uc">Time spent</div>
               <div className="row ac g6">
-                <div className="field" style={{width:62,flexShrink:0}}>
-                  <input type="number" min="0" max="99" value={hours} onChange={e=>setHours(Math.max(0,parseInt(e.target.value)||0))} style={{width:'100%',textAlign:'center'}} className="mono t13"/>
-                </div>
+                <NumCtrl value={hours} min={0} max={99} onChange={setHours}/>
                 <span className="mono t9 c3">h</span>
-                <div className="field" style={{width:62,flexShrink:0}}>
-                  <input type="number" min="0" max="59" value={mins} onChange={e=>setMins(Math.max(0,Math.min(59,parseInt(e.target.value)||0)))} style={{width:'100%',textAlign:'center'}} className="mono t13"/>
-                </div>
+                <NumCtrl value={mins} min={0} max={59} onChange={setMins}/>
                 <span className="mono t9 c3">m</span>
               </div>
             </div>
             <div className="col g5" style={{width:90,flexShrink:0}}>
               <div className="mono t9 c3 uc">Breaks</div>
-              <div className="field">
-                <input type="number" min="0" max="99" value={breaks} onChange={e=>setBreaks(Math.max(0,parseInt(e.target.value)||0))} style={{width:'100%',textAlign:'center'}} className="mono t13"/>
-              </div>
+              <NumCtrl value={breaks} min={0} max={99} onChange={setBreaks}/>
             </div>
           </div>
 
@@ -1337,8 +1551,7 @@ function AccomplishmentModal({ mode, initial, taskTitles, taskCols, onSave, onCa
   );
 }
 
-function AccomplishmentCard({ acc, onEdit, onDelete }) {
-  const [preview, setPreview] = useState(null);
+function AccomplishmentCard({ acc, onEdit, onDelete, onPreview, onPdfPreview }) {
   const d = new Date(acc.completedAt||Date.now());
   const dateStr = d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
 
@@ -1371,7 +1584,8 @@ function AccomplishmentCard({ acc, onEdit, onDelete }) {
           {acc.attachments.map(att => (
             <div key={att.id} title={att.name}
               onClick={() => {
-                if (att.kind==='image' && att.dataUrl) setPreview(att);
+                if (att.kind==='image' && att.dataUrl) onPreview && onPreview(att);
+                else if (att.kind==='pdf') onPdfPreview && onPdfPreview(att);
                 else if (att.objUrl) window.open(att.objUrl,'_blank');
               }}
               style={{width:52,height:38,borderRadius:5,overflow:'hidden',border:'1px solid var(--border)',cursor:'pointer',flexShrink:0,background:att.kind==='image'&&att.dataUrl?'transparent':'rgba(192,57,43,0.08)',display:'flex',alignItems:'center',justifyContent:'center',transition:'border-color 0.15s'}}
@@ -1379,7 +1593,10 @@ function AccomplishmentCard({ acc, onEdit, onDelete }) {
               onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border)'}>
               {att.kind==='image' && att.dataUrl
                 ? <img src={att.dataUrl} alt={att.name} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
-                : <span className="mono" style={{fontSize:7,color:'#e8a0a0'}}>{att.kind==='pdf'?'PDF':att.name.split('.').pop().toUpperCase()}</span>
+                : <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:2}}>
+                    <span className="mono" style={{fontSize:7,color:'#e8a0a0'}}>{att.kind==='pdf'?'PDF':att.name.split('.').pop().toUpperCase()}</span>
+                    {att.kind==='pdf' && <span style={{fontSize:6,color:'rgba(255,255,255,0.35)'}}>view</span>}
+                  </div>
               }
             </div>
           ))}
@@ -1388,16 +1605,6 @@ function AccomplishmentCard({ acc, onEdit, onDelete }) {
       )}
 
       <div className="mono t9 c3">{dateStr} · {fmtTs(acc.completedAt||Date.now())}</div>
-
-      {preview && (
-        <div className="modal-backdrop" style={{zIndex:2000}} onClick={() => setPreview(null)}>
-          <div style={{position:'relative'}} onClick={e => e.stopPropagation()}>
-            <img src={preview.dataUrl} alt={preview.name}
-              style={{maxWidth:'min(900px,90vw)',maxHeight:'85vh',objectFit:'contain',display:'block',borderRadius:8}}/>
-            <button className="btn ghost" style={{position:'absolute',top:8,right:8,width:32,height:32,padding:0,fontSize:18,background:'rgba(0,0,0,0.6)'}} onClick={() => setPreview(null)}>×</button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -1405,6 +1612,8 @@ function AccomplishmentCard({ acc, onEdit, onDelete }) {
 function Accomplishments({ accomplishments, setAccomplishments, onOpenModal }) {
   const totalTime   = accomplishments.reduce((s,a) => s+(a.timeSecs||0), 0);
   const totalBreaks = accomplishments.reduce((s,a) => s+(a.breaks||0), 0);
+  const [imgPreview, setImgPreview] = useState(null);
+  const [pdfPreview, setPdfPreview] = useState(null);
 
   const handleDelete = id => {
     playSound('button');
@@ -1443,10 +1652,58 @@ function Accomplishments({ accomplishments, setAccomplishments, onOpenModal }) {
           : [...accomplishments].reverse().map(a => (
               <AccomplishmentCard key={a.id} acc={a}
                 onEdit={() => onOpenModal(a)}
-                onDelete={() => handleDelete(a.id)}/>
+                onDelete={() => handleDelete(a.id)}
+                onPreview={setImgPreview}
+                onPdfPreview={setPdfPreview}/>
             ))
         }
       </div>
+
+      {/* Image preview — rendered outside cards so position:fixed works */}
+      {imgPreview && (
+        <div className="modal-backdrop" style={{zIndex:2000}} onClick={() => setImgPreview(null)}>
+          <div style={{position:'relative'}} onClick={e => e.stopPropagation()}>
+            <img src={imgPreview.dataUrl} alt={imgPreview.name}
+              style={{maxWidth:'min(900px,90vw)',maxHeight:'85vh',objectFit:'contain',display:'block',borderRadius:8}}/>
+            <button className="btn ghost" style={{position:'absolute',top:8,right:8,width:32,height:32,padding:0,fontSize:18,background:'rgba(0,0,0,0.6)'}}
+              onClick={() => setImgPreview(null)}>×</button>
+          </div>
+        </div>
+      )}
+
+      {/* PDF viewer — rendered outside cards so position:fixed works */}
+      {pdfPreview && (
+        <div className="modal-backdrop" style={{zIndex:2000}} onClick={() => setPdfPreview(null)}>
+          <div className="pdf-viewer-modal" onClick={e => e.stopPropagation()}>
+            <div className="pdf-viewer-hdr">
+              <span className="mono t10 c2" style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{pdfPreview.name}</span>
+              <div className="row ac g6" style={{flexShrink:0}}>
+                {pdfPreview.objUrl && (
+                  <a href={pdfPreview.objUrl} download={pdfPreview.name}
+                    className="btn sm ghost"
+                    style={{textDecoration:'none',color:'var(--text-2)'}}
+                    onClick={e => e.stopPropagation()}>
+                    ↓ Download
+                  </a>
+                )}
+                <button className="btn ghost sm" style={{width:28,height:28,padding:0,fontSize:16,lineHeight:1}}
+                  onClick={() => setPdfPreview(null)}>×</button>
+              </div>
+            </div>
+            {pdfPreview.objUrl
+              ? <iframe className="pdf-viewer-frame" src={pdfPreview.objUrl} title={pdfPreview.name}/>
+              : <div className="pdf-viewer-fallback">
+                  <div style={{fontSize:32,opacity:0.25}}>📄</div>
+                  <div className="mono t11 c2">{pdfPreview.name}</div>
+                  <div className="t12 c3" style={{lineHeight:1.6,maxWidth:280}}>
+                    PDF preview is only available in the current session.<br/>
+                    Re-attach the file to preview it again.
+                  </div>
+                </div>
+            }
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1906,10 +2163,10 @@ function CalendarScreen({ events, onSaveEvent, onDeleteEvent, onImportCal }) {
   const handleDel  = id => { onDeleteEvent(id); setModal(null); };
 
   return (
-    <div className="screen" style={{padding:0,gap:0,overflow:'hidden'}}>
+    <div className="screen cal-screen" style={{padding:0,gap:0,overflow:'hidden'}}>
 
       {/* Screen header */}
-      <div style={{padding:'28px 44px 16px',flexShrink:0,display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:16}}>
+      <div className="cal-screen-hdr" style={{padding:'28px 44px 16px',flexShrink:0,display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:16}}>
         <div>
           <div className="screen-eyebrow">Week view · {mlabel}</div>
           <div className="screen-title">Calendar</div>
@@ -2033,20 +2290,154 @@ function CalendarScreen({ events, onSaveEvent, onDeleteEvent, onImportCal }) {
 }
 
 // ═════════════════════════════════════════════════════════
+// GLOBAL IMPORT / EXPORT MODAL
+// ═════════════════════════════════════════════════════════
+function GlobalImportExportModal({ onImport, onCancel }) {
+  const [parsed,  setParsed]  = useState(null);
+  const [mode,    setMode]    = useState('merge');
+  const [errors,  setErrors]  = useState([]);
+  const [preview, setPreview] = useState([]);
+  const fileRef = useRef(null);
+
+  useEffect(() => {
+    const h = e => { if (e.key === 'Escape') onCancel(); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [onCancel]);
+
+  const handleExport = () => {
+    const data = {};
+    LS_KEYS.forEach(k => {
+      try {
+        const raw = localStorage.getItem(k);
+        if (raw !== null) { try { data[k] = JSON.parse(raw); } catch(e) { data[k] = raw; } }
+      } catch(e) {}
+    });
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `robertos-aid-backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    playSound('button');
+  };
+
+  const processFile = text => {
+    let raw;
+    try { raw = JSON.parse(text); } catch(e) { setErrors(['Invalid JSON — could not parse file.']); return; }
+    if (typeof raw !== 'object' || Array.isArray(raw)) { setErrors(['Expected a backup object (not an array).' ]); return; }
+    const hasAny = LS_KEYS.some(k => k in raw);
+    if (!hasAny) { setErrors(["File doesn't look like a Roberto's Aid backup."]); return; }
+    const counts = [];
+    if (raw.ra_tasks) {
+      const n = (raw.ra_tasks.burner?.length||0)+(raw.ra_tasks.active?.length||0)+(raw.ra_tasks.completed?.length||0);
+      if (n) counts.push(`${n} tasks`);
+    }
+    if (Array.isArray(raw.ra_calendar_events) && raw.ra_calendar_events.length) counts.push(`${raw.ra_calendar_events.length} calendar events`);
+    if (Array.isArray(raw.ra_accomplishments) && raw.ra_accomplishments.length) counts.push(`${raw.ra_accomplishments.length} accomplishments`);
+    if (Array.isArray(raw.ra_habits)     && raw.ra_habits.length)     counts.push(`${raw.ra_habits.length} habits`);
+    if (Array.isArray(raw.ra_habit_logs) && raw.ra_habit_logs.length) counts.push(`${raw.ra_habit_logs.length} habit logs`);
+    if (raw.ra_profile?.name) counts.push(`profile: ${raw.ra_profile.name}`);
+    setErrors([]); setParsed(raw); setPreview(counts);
+  };
+
+  const loadFile = f => { if (!f) return; const r = new FileReader(); r.onload = e => processFile(e.target.result); r.readAsText(f); };
+
+  return (
+    <div className="modal-backdrop" onClick={e => e.target===e.currentTarget && onCancel()}>
+      <div className="modal-box" style={{width:'min(500px,95vw)'}}>
+        <div className="modal-header">
+          <div className="modal-title">Import / Export</div>
+          <button className="btn ghost sm" style={{width:26,height:26,padding:0,fontSize:16,lineHeight:1}} onClick={onCancel}>×</button>
+        </div>
+        <div className="modal-body" style={{gap:18,maxHeight:'72vh',overflowY:'auto'}}>
+
+          {/* Export */}
+          <div className="col g8">
+            <div className="mono t9 c3 uc ls-wide">Export</div>
+            <div className="t12 c2" style={{lineHeight:1.6}}>
+              Download all local data as one JSON file — tasks, habits, calendar, accomplishments, sessions, settings, and profile.
+            </div>
+            <button className="btn primary" style={{alignSelf:'flex-start'}} onClick={handleExport}>↓ Download Backup</button>
+          </div>
+
+          <div className="divider"/>
+
+          {/* Import */}
+          <div className="col g8">
+            <div className="mono t9 c3 uc ls-wide">Import</div>
+            <div className="import-drop-zone"
+              onDragOver={e=>e.preventDefault()}
+              onDrop={e=>{e.preventDefault();loadFile(e.dataTransfer.files[0]);}}
+              onClick={()=>fileRef.current?.click()}>
+              <input ref={fileRef} type="file" accept=".json" style={{display:'none'}} onChange={e=>loadFile(e.target.files[0])}/>
+              <div className="mono t10 c3" style={{marginBottom:4}}>Drop a backup .json file here</div>
+              <div className="mono t9 c3">or click to browse</div>
+            </div>
+
+            {errors.length > 0 && (
+              <div style={{padding:'8px 12px',background:'rgba(192,57,43,0.08)',border:'1px solid rgba(192,57,43,0.3)',borderRadius:'var(--radius-sm)'}}>
+                {errors.map((e,i) => <div key={i} className="mono t10" style={{color:'var(--red-2)'}}>{e}</div>)}
+              </div>
+            )}
+
+            {parsed && (
+              <div className="col g10">
+                <div className="mono t9 c3 uc ls-wide">Contents detected</div>
+                {preview.length > 0 && (
+                  <div className="col g4">
+                    {preview.map((p,i) => (
+                      <div key={i} className="row ac g8">
+                        <div style={{width:4,height:4,borderRadius:'50%',background:'var(--red-2)',flexShrink:0}}/>
+                        <span className="t11 c2">{p}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="col g6">
+                  <div className="mono t9 c3 uc ls-wide">Mode</div>
+                  <div className="seg">
+                    <button className={`btn sm ${mode==='merge'?'active':''}`} onClick={()=>setMode('merge')}>Merge</button>
+                    <button className={`btn sm ${mode==='replace'?'active':''}`} onClick={()=>setMode('replace')}>Replace All</button>
+                  </div>
+                  {mode==='replace' && <div className="mono t9" style={{color:'var(--red-2)'}}>⚠ Overwrites all existing data. Page will reload.</div>}
+                  {mode==='merge'   && <div className="mono t9 c3">Backup values overwrite matching keys. Page will reload.</div>}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="modal-footer">
+          <button className="btn ghost" onClick={onCancel}>Cancel</button>
+          {parsed && (
+            <button className="btn primary" onClick={()=>onImport(parsed,mode)}>
+              {mode==='replace'?'Replace & Import':'Merge & Import'}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════
 // PROFILE MODAL
 // ═════════════════════════════════════════════════════════
 const LS_KEYS = [
-  'ra_profile','ra_tasks','ra_accomplishments',
+  'ra_profile','ra_profiles','ra_active_profile_id',
+  'ra_tasks','ra_accomplishments',
   'ra_pom_settings','ra_pom_sessions','ra_pom_daily',
   'ra_timer_sessions','ra_bg','ra_filter','ra_sound_muted',
   'ra_calendar_events','ra_habits','ra_habit_logs',
-  'ra_daily_reviews','ra_weekly_reviews','ra_theme',
+  'ra_daily_reviews','ra_weekly_reviews','ra_theme','ra_ui_motion',
 ];
 
-function ProfileModal({ profile, isFirstRun, onSave, onCancel, theme, onSetTheme }) {
+function ProfileModal({ profile, profiles, activeProfileId, isFirstRun, onSave, onCancel, onSwitchProfile, theme, onSetTheme }) {
   const [name,         setName]         = useState(profile.name     || '');
   const [initials,     setInitials]     = useState(profile.initials || '');
   const [confirmReset, setConfirmReset] = useState(false);
+  const [createNew,    setCreateNew]    = useState(false);
   const tz = DEFAULT_PROFILE.timezone;
 
   // Auto-derive initials from name when the user hasn't typed custom ones
@@ -2067,7 +2458,9 @@ function ProfileModal({ profile, isFirstRun, onSave, onCancel, theme, onSetTheme
   const handleSave = () => {
     if (!name.trim()) return;
     playSound('button');
-    onSave({ ...profile, name: name.trim(), initials: initials.trim() || autoInitials });
+    const pid = createNew ? ('p_' + Date.now()) : (profile.id || activeProfileId || 'p_default');
+    onSave({ ...profile, id: pid, name: name.trim(), initials: initials.trim() || autoInitials });
+    if (createNew) setCreateNew(false);
   };
 
   const handleReset = () => {
@@ -2160,6 +2553,47 @@ function ProfileModal({ profile, isFirstRun, onSave, onCancel, theme, onSetTheme
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {!isFirstRun && profiles && profiles.length > 0 && (
+            <div className="col g8">
+              <div className="row jb ac">
+                <div className="mono t9 c3 uc">Local Profiles</div>
+                {!createNew && (
+                  <button className="btn ghost sm" style={{fontSize:9}}
+                    onClick={() => { setName(''); setInitials(''); setCreateNew(true); }}>
+                    + New Profile
+                  </button>
+                )}
+              </div>
+              {createNew && (
+                <div className="mono t10 c2" style={{padding:'6px 10px',background:'rgba(192,57,43,0.06)',border:'1px solid rgba(192,57,43,0.25)',borderRadius:6}}>
+                  Creating new profile — fill in name above and Save.
+                  <button className="btn ghost sm" style={{marginLeft:8,fontSize:9}} onClick={()=>{setName(profile.name||'');setInitials(profile.initials||'');setCreateNew(false);}}>Cancel</button>
+                </div>
+              )}
+              {!createNew && (
+                <div className="col g4">
+                  {profiles.map(p => {
+                    const isActive = p.id === activeProfileId;
+                    const disp = p.initials || (p.name||'').trim().split(/\s+/).filter(Boolean).map(w=>w[0].toUpperCase()).slice(0,2).join('') || '?';
+                    return (
+                      <div key={p.id} className="row ac g10"
+                        style={{padding:'7px 10px',background:isActive?'rgba(192,57,43,0.06)':'var(--surface)',borderRadius:7,border:`1px solid ${isActive?'rgba(192,57,43,0.35)':'var(--border)'}`}}>
+                        <div style={{width:26,height:26,borderRadius:'50%',background:'rgba(192,57,43,0.10)',border:'1px solid rgba(192,57,43,0.28)',display:'grid',placeItems:'center',flexShrink:0}}>
+                          <span className="mono" style={{fontSize:9,color:'#e8a0a0',letterSpacing:'0.04em'}}>{disp}</span>
+                        </div>
+                        <span className="t12 flex1" style={{color:'var(--text)'}}>{p.name||'Unnamed'}</span>
+                        {isActive
+                          ? <span className="mono t9" style={{color:'var(--red-2)'}}>Active</span>
+                          : <button className="btn sm ghost" onClick={()=>onSwitchProfile&&onSwitchProfile(p)}>Switch</button>
+                        }
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
@@ -3022,9 +3456,26 @@ function App() {
   const [dailyReviews,  setDailyReviews]  = useState(() => loadState('ra_daily_reviews',  []));
   const [weeklyReviews, setWeeklyReviews] = useState(() => loadState('ra_weekly_reviews', []));
   const [theme,         setThemeState]    = useState(() => loadState('ra_theme', 'dark'));
+  const [uiMotion,      setUiMotion]      = useState(() => loadState('ra_ui_motion', 'still'));
   const [bgChoice,    setBgChoice]    = useState(() => loadState('ra_bg',      'hall'));
   const [bgFilter,    setBgFilter]    = useState(() => loadState('ra_filter',  'clean'));
   const [profile,     setProfile]     = useState(() => loadState('ra_profile', DEFAULT_PROFILE));
+  const [profiles,    setProfiles]    = useState(() => {
+    const saved = loadState('ra_profiles', null);
+    if (Array.isArray(saved) && saved.length > 0) return saved;
+    const cur = loadState('ra_profile', DEFAULT_PROFILE);
+    if (cur.name?.trim()) {
+      const pid = cur.id || 'p_default';
+      const migrated = [{...cur, id: pid}];
+      saveState('ra_profiles', migrated);
+      saveState('ra_active_profile_id', pid);
+      return migrated;
+    }
+    return [];
+  });
+  const [activeProfileId, setActiveProfileId] = useState(() =>
+    loadState('ra_active_profile_id', null) || loadState('ra_profile', DEFAULT_PROFILE).id || null
+  );
   const [soundMuted,  _setSoundMuted] = useState(() => soundCtrl.muted);
   const [acModal,     setAcModal]     = useState(null);
   // Auto-open on first visit (when no name is saved yet)
@@ -3052,6 +3503,8 @@ function App() {
   useEffect(() => { saveState('ra_timer_sessions',  timerSessions.slice(-200));         }, [timerSessions]);
   useEffect(() => { saveState('ra_accomplishments', accomplishments.map(serializeAcc)); }, [accomplishments]);
   useEffect(() => { saveState('ra_profile',         profile);                           }, [profile]);
+  useEffect(() => { saveState('ra_profiles',        profiles);                          }, [profiles]);
+  useEffect(() => { if (activeProfileId) saveState('ra_active_profile_id', activeProfileId); }, [activeProfileId]);
   useEffect(() => { saveState('ra_calendar_events', calEvents);                         }, [calEvents]);
   useEffect(() => { saveState('ra_habits',          habits);                            }, [habits]);
   useEffect(() => { saveState('ra_habit_logs',      habitLogs.slice(-2000));            }, [habitLogs]);
@@ -3061,6 +3514,7 @@ function App() {
     saveState('ra_theme', theme);
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
+  useEffect(() => { saveState('ra_ui_motion', uiMotion); }, [uiMotion]);
 
   // Apply saved theme immediately on mount
   useEffect(() => {
@@ -3183,7 +3637,21 @@ function App() {
   };
 
   const handleSaveProfile = updated => {
-    setProfile(updated);
+    const pid = updated.id || activeProfileId || ('p_' + Date.now());
+    const withId = {...updated, id: pid};
+    setProfile(withId);
+    setActiveProfileId(pid);
+    setProfiles(prev => {
+      const exists = prev.some(p => p.id === pid);
+      return exists ? prev.map(p => p.id===pid ? withId : p) : [...prev, withId];
+    });
+    playSound('button');
+    setProfileOpen(false);
+  };
+
+  const handleSwitchProfile = target => {
+    setProfile(target);
+    setActiveProfileId(target.id);
     playSound('button');
     setProfileOpen(false);
   };
@@ -3193,8 +3661,11 @@ function App() {
   const profileModalNode = profileOpen && (
     <ProfileModal
       profile={profile}
+      profiles={profiles}
+      activeProfileId={activeProfileId}
       isFirstRun={!profileSetupDone}
       onSave={handleSaveProfile}
+      onSwitchProfile={handleSwitchProfile}
       onCancel={profileSetupDone ? () => { playSound('button'); setProfileOpen(false); } : () => {}}
       theme={theme}
       onSetTheme={handleSetTheme}
@@ -3216,7 +3687,9 @@ function App() {
         bgChoice={bgChoice} bgFilter={bgFilter}
         onSetBgChoice={handleSetBgChoice} onSetBgFilter={handleSetBgFilter}
         soundMuted={soundMuted} onToggleSound={toggleSound}
-        onOpenProfile={() => { playSound('button'); setProfileOpen(true); }}>
+        onOpenProfile={() => { playSound('button'); setProfileOpen(true); }}
+        theme={theme} onSetTheme={handleSetTheme}
+        uiMotion={uiMotion} onSetMotion={setUiMotion}>
         {screen==='pomodoro' && <Pomodoro pomState={pom} setPomState={setPom} taskTitles={taskTitles} onPostAccomplishment={handlePostFromSession}/>}
         {screen==='timer'    && <TimerScreen sessions={timerSessions} onAddSession={s=>setTimerSess(prev=>[...prev,s])} taskTitles={taskTitles} onPostAccomplishment={handlePostFromSession}/>}
         {screen==='tasks'    && <Tasks cols={taskCols} setCols={setTaskCols} focusData={taskFocusMap} accomplishmentMap={accomplishMap}/>}
