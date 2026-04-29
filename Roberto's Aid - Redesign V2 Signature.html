@@ -1,0 +1,1275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Roberto's Aid — Signature Direction</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300;1,9..144,400&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#050507;
+    --ink:#F5EFE2;
+    --ink-2:#A6A099;
+    --ink-3:#5C574F;
+    --line:rgba(245,239,226,.06);
+    --line-2:rgba(245,239,226,.12);
+    --line-3:rgba(245,239,226,.22);
+    --mars:#E5483F;
+    --mars-glow:#FF6B5C;
+    --mars-deep:#7A1814;
+    --steel:#3B4554;
+    --bone:#E8DDC6;
+    --copper:#C58A5C;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--void);color:var(--ink);font-family:'Inter',sans-serif;font-weight:400;-webkit-font-smoothing:antialiased;line-height:1.5}
+  body{overflow-x:hidden}
+  .mono{font-family:'JetBrains Mono',monospace;letter-spacing:.04em}
+  .display{font-family:'Fraunces',serif;font-weight:300}
+  /* ──────────────────────────────────────────── */
+  /*  HUD                                          */
+  /* ──────────────────────────────────────────── */
+  .hud{position:fixed;top:0;left:0;right:0;z-index:80;padding:18px 32px;display:flex;justify-content:space-between;align-items:center;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.22em;color:var(--ink-3);text-transform:uppercase;background:linear-gradient(180deg, rgba(5,5,7,.85), transparent);backdrop-filter:blur(6px);pointer-events:none}
+  .hud .l{display:flex;gap:18px;align-items:center}
+  .hud .l .mark{width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 30% 30%, var(--mars-glow), var(--mars-deep));box-shadow:0 0 0 1px rgba(245,239,226,.15), 0 0 20px rgba(229,72,63,.45)}
+  .hud .r{display:flex;gap:32px}
+  .hud .r .blink{color:var(--mars)}
+
+  /* ──────────────────────────────────────────── */
+  /*  STAGE — full bleed sections                 */
+  /* ──────────────────────────────────────────── */
+  .stage{position:relative;min-height:100vh;width:100%;overflow:hidden}
+
+  /* shared starfield */
+  .stars{position:absolute;inset:0;pointer-events:none;
+    background-image:
+      radial-gradient(1px 1px at 6% 14%,rgba(255,255,255,.55) 50%,transparent 51%),
+      radial-gradient(1px 1px at 18% 36%,rgba(255,255,255,.4) 50%,transparent 51%),
+      radial-gradient(1.5px 1.5px at 32% 12%,rgba(255,255,255,.6) 50%,transparent 51%),
+      radial-gradient(1px 1px at 48% 28%,rgba(255,255,255,.35) 50%,transparent 51%),
+      radial-gradient(1.2px 1.2px at 64% 8%,rgba(255,255,255,.5) 50%,transparent 51%),
+      radial-gradient(1px 1px at 78% 18%,rgba(255,255,255,.4) 50%,transparent 51%),
+      radial-gradient(2px 2px at 88% 32%,rgba(255,255,255,.55) 50%,transparent 51%),
+      radial-gradient(1px 1px at 92% 64%,rgba(255,255,255,.35) 50%,transparent 51%),
+      radial-gradient(1px 1px at 14% 78%,rgba(255,255,255,.3) 50%,transparent 51%),
+      radial-gradient(1.5px 1.5px at 28% 64%,rgba(255,255,255,.4) 50%,transparent 51%),
+      radial-gradient(2px 2px at 52% 86%,rgba(229,72,63,.7) 50%,transparent 51%),
+      radial-gradient(1px 1px at 64% 72%,rgba(255,255,255,.3) 50%,transparent 51%),
+      radial-gradient(1.5px 1.5px at 80% 80%,rgba(255,255,255,.45) 50%,transparent 51%),
+      radial-gradient(1px 1px at 38% 92%,rgba(255,255,255,.35) 50%,transparent 51%);
+  }
+  .stars.dim{opacity:.5}
+  .grain{position:absolute;inset:0;pointer-events:none;opacity:.5;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.96 0 0 0 0 0.94 0 0 0 0 0.89 0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");}
+
+  /* ──────────────────────────────────────────── */
+  /*  COVER                                       */
+  /* ──────────────────────────────────────────── */
+  .cover{
+    background:
+      radial-gradient(1400px 700px at 70% 35%, rgba(229,72,63,.18), transparent 55%),
+      radial-gradient(900px 600px at 18% 70%, rgba(60,80,110,.10), transparent 60%),
+      var(--void);
+  }
+  /* a sculpted half-disc — the "planetoid" */
+  .planetoid{position:absolute;right:-10%;top:8%;width:78vmin;height:78vmin;border-radius:50%;
+    background:
+      radial-gradient(circle at 32% 28%, #1F1410 0%, #0D0708 36%, #050507 70%);
+    box-shadow:
+      inset -40px -60px 120px rgba(229,72,63,.18),
+      inset 60px 80px 180px rgba(0,0,0,.6),
+      0 0 180px rgba(229,72,63,.12);
+  }
+  .planetoid::after{content:"";position:absolute;inset:-1px;border-radius:50%;
+    background:conic-gradient(from 220deg, transparent 0deg, rgba(229,72,63,.5) 25deg, transparent 80deg);
+    -webkit-mask:radial-gradient(circle, transparent 49.4%, #000 49.6%);
+    mask:radial-gradient(circle, transparent 49.4%, #000 49.6%);
+    filter:blur(2px);
+  }
+  /* orbital ring */
+  .orbit{position:absolute;left:50%;top:50%;width:130vmin;height:130vmin;border-radius:50%;border:1px solid rgba(245,239,226,.07);transform:translate(-50%,-50%) rotate(-18deg)}
+  .orbit::before{content:"";position:absolute;inset:5%;border-radius:50%;border:1px dashed rgba(229,72,63,.18)}
+  .orbit::after{content:"";position:absolute;width:6px;height:6px;border-radius:50%;background:var(--mars);box-shadow:0 0 14px var(--mars);left:calc(50% - 3px);top:-3px}
+
+  .cover-content{position:absolute;inset:0;display:grid;grid-template-rows:auto 1fr auto;padding:80px 56px 56px;z-index:5}
+  .cover-meta{display:flex;justify-content:space-between;align-items:flex-start;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.22em;color:var(--ink-3);text-transform:uppercase}
+  .cover-meta .live{color:var(--mars)}
+  .cover-meta .l{display:flex;gap:24px;align-items:center}
+  .cover-meta .l .m{width:8px;height:8px;border-radius:50%;background:radial-gradient(circle at 30% 30%, var(--mars-glow), var(--mars-deep))}
+  .cover-meta .r{display:flex;gap:24px}
+
+  .cover-title{align-self:end;max-width:980px;padding-top:8vh}
+  .cover-title .eyebrow{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.42em;color:var(--ink-2);margin-bottom:32px;text-transform:uppercase}
+  .cover-title .eyebrow span{color:var(--mars)}
+  .cover-title h1{font-family:'Fraunces',serif;font-weight:300;font-size:clamp(72px,11vw,168px);line-height:.88;letter-spacing:-.04em}
+  .cover-title h1 em{font-style:italic;font-weight:300;color:var(--ink-2)}
+  .cover-title h1 .strk{position:relative;display:inline-block}
+  .cover-title h1 .strk::after{content:"";position:absolute;left:-2%;right:-2%;top:48%;height:2px;background:var(--mars);transform-origin:left;transform:scaleX(.7)}
+  .cover-title .lede{margin-top:32px;color:var(--ink-2);max-width:560px;font-size:17px;line-height:1.55}
+
+  /* sculpted bottom rail */
+  .cover-rail{display:grid;grid-template-columns:1fr auto 1fr auto 1fr 1fr;gap:24px;align-items:center;padding-top:32px;border-top:1px solid var(--line)}
+  .cover-rail .cell{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;color:var(--ink-3);text-transform:uppercase}
+  .cover-rail .cell .v{display:block;color:var(--ink);font-family:'Fraunces',serif;font-style:italic;font-size:22px;letter-spacing:0;text-transform:none;margin-top:6px}
+  .cover-rail .cell .v.mono{font-family:'JetBrains Mono',monospace;font-style:normal;font-size:13px;letter-spacing:.16em;text-transform:uppercase}
+  .cover-rail .div{width:1px;height:36px;background:var(--line-2)}
+
+  /* ──────────────────────────────────────────── */
+  /*  SECTION TITLES                               */
+  /* ──────────────────────────────────────────── */
+  .sec{padding:140px 56px;position:relative}
+  .sec-head{display:grid;grid-template-columns:1fr 2fr;gap:80px;margin-bottom:96px;align-items:end;position:relative;z-index:2}
+  .sec-head .meta{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.32em;color:var(--ink-3);text-transform:uppercase;display:flex;flex-direction:column;gap:8px;border-left:1px solid var(--line-2);padding-left:18px}
+  .sec-head .meta .num{color:var(--mars);font-size:13px}
+  .sec-head h2{font-family:'Fraunces',serif;font-weight:300;font-size:clamp(48px,5.5vw,84px);line-height:.95;letter-spacing:-.03em}
+  .sec-head h2 em{font-style:italic;font-weight:300;color:var(--ink-2)}
+  .sec-head h2 .red{color:var(--mars)}
+  .sec-head .lede{margin-top:24px;color:var(--ink-2);font-size:16px;line-height:1.65;max-width:680px}
+
+  /* ──────────────────────────────────────────── */
+  /*  PHILOSOPHY band                              */
+  /* ──────────────────────────────────────────── */
+  .philosophy{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .philosophy .p{background:var(--void);padding:48px 32px;display:flex;flex-direction:column;gap:24px;min-height:340px;justify-content:space-between}
+  .philosophy .p .n{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.32em;color:var(--mars);text-transform:uppercase}
+  .philosophy .p h3{font-family:'Fraunces',serif;font-weight:300;font-size:36px;line-height:1;letter-spacing:-.02em}
+  .philosophy .p h3 em{font-style:italic;color:var(--ink-2)}
+  .philosophy .p p{color:var(--ink-2);font-size:14px;line-height:1.6}
+  .philosophy .p .glyph{height:60px;display:flex;align-items:center}
+
+  /* ──────────────────────────────────────────── */
+  /*  SIGNATURE COMPOSITION — Hub view             */
+  /* ──────────────────────────────────────────── */
+  .composition{position:relative;height:840px;border:1px solid var(--line-2);border-radius:2px;overflow:hidden;background:var(--void);margin-top:32px}
+  .composition .stars{opacity:.7}
+
+  /* the radial nav — central but offset */
+  .radial-wrap{position:absolute;left:0;top:0;bottom:0;width:280px;display:flex;align-items:center;justify-content:center;z-index:5}
+  .radial{position:relative;width:220px;height:220px;border-radius:50%;border:1px solid var(--line-2);background:radial-gradient(circle at 50% 50%, rgba(15,15,18,.5), rgba(8,8,10,.9));backdrop-filter:blur(20px)}
+  .radial::before{content:"";position:absolute;inset:-14px;border-radius:50%;border:1px dashed rgba(245,239,226,.08)}
+  .radial::after{content:"";position:absolute;inset:-44px;border-radius:50%;border:1px solid rgba(245,239,226,.04)}
+  .radial .core{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:84px;height:84px;border-radius:50%;background:radial-gradient(circle at 30% 30%, var(--mars-glow), var(--mars-deep));box-shadow:0 0 40px rgba(229,72,63,.45),inset 0 -8px 16px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.24em;color:#fff;text-transform:uppercase;font-weight:500;text-align:center;line-height:1.3}
+  .radial .core span{display:block;font-family:'Fraunces',serif;font-style:italic;font-size:18px;letter-spacing:0;text-transform:none;font-weight:300;margin-top:2px}
+  /* spokes */
+  .radial .spoke{position:absolute;left:50%;top:50%;width:1px;height:108px;background:linear-gradient(180deg, transparent, var(--line-2));transform-origin:top center}
+  .radial .node{position:absolute;width:38px;height:38px;border-radius:50%;border:1px solid var(--line-2);background:rgba(15,15,18,.85);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-2);letter-spacing:.1em}
+  .radial .node.on{border-color:var(--mars);color:var(--mars);box-shadow:0 0 20px rgba(229,72,63,.4),inset 0 0 0 1px rgba(229,72,63,.4)}
+  .radial .node .lab{position:absolute;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.22em;color:var(--ink-3);text-transform:uppercase;white-space:nowrap}
+
+  /* pseudo-positioned nodes around the core */
+  .n1{left:50%;top:0%;transform:translate(-50%,-50%)}
+  .n1 .lab{top:-22px;left:50%;transform:translateX(-50%)}
+  .n2{left:100%;top:18%;transform:translate(-50%,-50%)}
+  .n2 .lab{left:46px;top:50%;transform:translateY(-50%)}
+  .n3{left:100%;top:82%;transform:translate(-50%,-50%)}
+  .n3 .lab{left:46px;top:50%;transform:translateY(-50%)}
+  .n4{left:50%;top:100%;transform:translate(-50%,-50%)}
+  .n4 .lab{bottom:-22px;left:50%;transform:translateX(-50%)}
+  .n5{left:0%;top:82%;transform:translate(-50%,-50%)}
+  .n5 .lab{right:46px;top:50%;transform:translateY(-50%)}
+  .n6{left:0%;top:18%;transform:translate(-50%,-50%)}
+  .n6 .lab{right:46px;top:50%;transform:translateY(-50%)}
+
+  /* the asymmetric content masses */
+  .composition .left-shelf{position:absolute;left:0;top:0;bottom:0;width:60px;border-right:1px solid var(--line);background:linear-gradient(180deg, rgba(8,8,10,.7), rgba(5,5,7,.95));display:flex;flex-direction:column;justify-content:space-between;padding:24px 0;z-index:6}
+  .composition .left-shelf .mark{width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 30% 30%, var(--mars-glow), var(--mars-deep));margin:0 auto;box-shadow:0 0 16px rgba(229,72,63,.5)}
+  .composition .left-shelf .axis{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-3);letter-spacing:.18em;writing-mode:vertical-rl;text-orientation:mixed;text-transform:uppercase}
+  .composition .left-shelf .axis div{transform:rotate(180deg)}
+  .composition .left-shelf .badge{margin:0 auto;font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--ink-3);letter-spacing:.18em;text-align:center;text-transform:uppercase}
+
+  /* the right-side stack — sculpted info panels at varying heights */
+  .composition .right-stack{position:absolute;right:32px;top:32px;bottom:32px;width:380px;display:grid;grid-template-rows:auto 1fr auto auto;gap:18px;z-index:4}
+  .panel{background:linear-gradient(160deg, rgba(20,18,16,.65), rgba(10,9,8,.85));backdrop-filter:blur(14px);border:1px solid var(--line-2);position:relative;overflow:hidden}
+  .panel::before{content:"";position:absolute;left:0;top:0;width:1px;height:24px;background:var(--mars)}
+  .panel.alt::before{background:var(--ink-2)}
+  .panel .ph{padding:18px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line)}
+  .panel .ph .pl{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.22em;color:var(--ink-2);text-transform:uppercase}
+  .panel .ph .pr{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;color:var(--ink-3);text-transform:uppercase}
+  .panel .pb{padding:20px}
+
+  .focus-panel .ttime{font-family:'Fraunces',serif;font-weight:300;font-size:78px;letter-spacing:-.04em;line-height:.9}
+  .focus-panel .ttime em{font-style:italic;font-size:36px;color:var(--ink-2)}
+  .focus-panel .meta{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;color:var(--ink-3);margin-top:18px;text-transform:uppercase}
+  .focus-panel .meta .v{color:var(--mars)}
+  .focus-panel .bar{height:2px;background:var(--line-2);position:relative;margin-top:12px}
+  .focus-panel .bar::after{content:"";position:absolute;left:0;top:0;bottom:0;width:68%;background:var(--mars);box-shadow:0 0 14px rgba(229,72,63,.6)}
+
+  .agenda-panel{display:flex;flex-direction:column}
+  .agenda-panel .ag{padding:14px 20px;display:grid;grid-template-columns:50px 1fr auto;gap:14px;align-items:center;border-bottom:1px solid var(--line)}
+  .agenda-panel .ag:last-child{border-bottom:none}
+  .agenda-panel .ag .t{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-2);letter-spacing:.08em}
+  .agenda-panel .ag .d{font-size:13px;color:var(--ink);line-height:1.35}
+  .agenda-panel .ag .d .sub{display:block;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-3);letter-spacing:.16em;margin-top:3px;text-transform:uppercase}
+  .agenda-panel .ag .x{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-3);letter-spacing:.16em;text-transform:uppercase}
+  .agenda-panel .ag .x.live{color:var(--mars)}
+
+  .stat-panel{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line)}
+  .stat-panel .s{background:rgba(8,8,10,.4);padding:18px;display:flex;flex-direction:column;gap:6px}
+  .stat-panel .s .l{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.22em;color:var(--ink-3);text-transform:uppercase}
+  .stat-panel .s .v{font-family:'Fraunces',serif;font-weight:300;font-size:32px;letter-spacing:-.02em;line-height:1}
+  .stat-panel .s .v em{font-style:italic;font-size:14px;color:var(--ink-2);font-family:'JetBrains Mono',monospace;letter-spacing:.1em;margin-left:4px}
+  .stat-panel .s .v .red{color:var(--mars)}
+
+  /* the floating "edition" caption — bottom left of comp */
+  .composition .edition{position:absolute;left:88px;bottom:32px;z-index:5;max-width:340px}
+  .composition .edition .k{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.32em;color:var(--mars);text-transform:uppercase;margin-bottom:12px}
+  .composition .edition h3{font-family:'Fraunces',serif;font-weight:300;font-size:42px;line-height:.95;letter-spacing:-.02em;margin-bottom:14px}
+  .composition .edition h3 em{font-style:italic;color:var(--ink-2)}
+  .composition .edition p{color:var(--ink-2);font-size:13px;line-height:1.6}
+
+  /* axis crosshairs */
+  .composition .crosshairs{position:absolute;left:300px;top:32px;right:430px;bottom:32px;border:1px solid var(--line);pointer-events:none;z-index:2}
+  .composition .crosshairs::before,.composition .crosshairs::after{content:"";position:absolute;background:var(--line-2)}
+  .composition .crosshairs::before{left:0;right:0;top:50%;height:1px}
+  .composition .crosshairs::after{top:0;bottom:0;left:50%;width:1px}
+  .composition .ch-corner{position:absolute;width:12px;height:12px;border:1px solid var(--mars);z-index:3}
+  .composition .ch-tl{left:300px;top:32px;border-right:none;border-bottom:none}
+  .composition .ch-tr{right:430px;top:32px;border-left:none;border-bottom:none}
+  .composition .ch-bl{left:300px;bottom:32px;border-right:none;border-top:none}
+  .composition .ch-br{right:430px;bottom:32px;border-left:none;border-top:none}
+
+  /* readout strip at top of crosshair area */
+  .composition .readout{position:absolute;left:330px;top:64px;right:460px;display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.22em;color:var(--ink-3);text-transform:uppercase;z-index:3}
+  .composition .readout .live{color:var(--mars)}
+
+  /* ──────────────────────────────────────────── */
+  /*  POMODORO — the ARC                          */
+  /* ──────────────────────────────────────────── */
+  .arc-stage{position:relative;height:880px;background:radial-gradient(900px 600px at 50% 110%, rgba(229,72,63,.18), transparent 55%), var(--void);border:1px solid var(--line-2);border-radius:2px;overflow:hidden;margin-top:32px}
+  .arc-stage .stars{opacity:.5}
+  /* horizon — subtle gradient line */
+  .arc-stage .horizon{position:absolute;left:0;right:0;bottom:36%;height:1px;background:linear-gradient(90deg, transparent, var(--line-3) 20%, var(--mars) 50%, var(--line-3) 80%, transparent);box-shadow:0 0 60px rgba(229,72,63,.3);z-index:2}
+  .arc-stage .horizon::before{content:"";position:absolute;left:50%;top:-2px;width:5px;height:5px;border-radius:50%;background:var(--mars);box-shadow:0 0 16px var(--mars);transform:translateX(-50%)}
+
+  /* the giant arc — focus dial */
+  .arc-stage .arc{position:absolute;left:50%;top:64%;width:1100px;height:1100px;transform:translate(-50%,-50%);border-radius:50%;
+    background:
+      radial-gradient(circle at 50% 50%, rgba(229,72,63,.04), transparent 50%);
+    z-index:3;
+  }
+  .arc-stage .arc::before{content:"";position:absolute;inset:0;border-radius:50%;
+    background:conic-gradient(from -90deg, var(--mars-glow) 0deg, var(--mars) 244deg, rgba(229,72,63,.06) 244deg, rgba(229,72,63,.06) 360deg);
+    -webkit-mask:radial-gradient(circle, transparent calc(50% - 1.5px), #000 calc(50% - 0.5px), #000 50%, transparent calc(50% + 0.5px));
+    mask:radial-gradient(circle, transparent calc(50% - 1.5px), #000 calc(50% - 0.5px), #000 50%, transparent calc(50% + 0.5px));
+    filter:drop-shadow(0 0 14px rgba(229,72,63,.5));
+  }
+  .arc-stage .arc::after{content:"";position:absolute;inset:30px;border-radius:50%;border:1px dashed rgba(229,72,63,.18)}
+  .arc-stage .arc-inner{position:absolute;inset:80px;border-radius:50%;border:1px solid var(--line-2)}
+
+  /* tick marks around arc */
+  .arc-ticks{position:absolute;left:50%;top:64%;width:1080px;height:1080px;transform:translate(-50%,-50%);border-radius:50%;z-index:4;pointer-events:none}
+  .arc-ticks .tk{position:absolute;left:50%;top:50%;width:1px;height:8px;background:var(--ink-3);transform-origin:0 0}
+
+  /* hero numerals */
+  .arc-stage .numerals{position:absolute;left:50%;top:34%;transform:translate(-50%,-50%);z-index:6;text-align:center}
+  .arc-stage .numerals .pretitle{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.42em;color:var(--mars);text-transform:uppercase;margin-bottom:18px}
+  .arc-stage .numerals .pretitle .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--mars);box-shadow:0 0 12px var(--mars);margin-right:10px;vertical-align:middle}
+  .arc-stage .numerals .big{font-family:'Fraunces',serif;font-weight:300;font-size:240px;line-height:.85;letter-spacing:-.06em;color:var(--ink)}
+  .arc-stage .numerals .big em{font-style:italic;font-weight:300;color:var(--ink-2);font-size:160px;letter-spacing:-.06em}
+  .arc-stage .numerals .sub{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.32em;color:var(--ink-3);text-transform:uppercase;margin-top:14px}
+
+  /* control deck — bottom center */
+  .arc-stage .deck{position:absolute;left:50%;bottom:60px;transform:translateX(-50%);z-index:7;display:flex;flex-direction:column;align-items:center;gap:24px}
+  .arc-stage .deck .pips{display:flex;gap:6px}
+  .arc-stage .deck .pips .p{width:42px;height:2px;background:var(--line-2);border-radius:0}
+  .arc-stage .deck .pips .p.done{background:var(--mars)}
+  .arc-stage .deck .pips .p.now{background:var(--ink);box-shadow:0 0 12px var(--ink)}
+  .arc-stage .deck .ctrls{display:flex;align-items:center;gap:24px}
+  .arc-stage .deck .b{width:52px;height:52px;border-radius:50%;border:1px solid var(--line-2);background:rgba(20,18,16,.55);backdrop-filter:blur(10px);color:var(--ink-2);display:flex;align-items:center;justify-content:center;font-size:14px}
+  .arc-stage .deck .play{width:88px;height:88px;background:radial-gradient(circle at 30% 30%, var(--mars-glow), var(--mars-deep));color:#fff;font-size:22px;border:none;box-shadow:0 0 50px rgba(229,72,63,.55), inset 0 -8px 16px rgba(0,0,0,.35)}
+  .arc-stage .deck .keys{display:flex;gap:24px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.22em;color:var(--ink-3);text-transform:uppercase}
+  .arc-stage .deck .keys span{width:52px;text-align:center}
+  .arc-stage .deck .keys span.mid{width:88px;color:var(--ink-2)}
+
+  /* left flank — preset prism */
+  .arc-stage .flank-l{position:absolute;left:36px;top:50%;transform:translateY(-50%);width:200px;z-index:8;display:flex;flex-direction:column;gap:14px}
+  .arc-stage .flank-l .ftt{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.32em;color:var(--ink-3);text-transform:uppercase;border-bottom:1px solid var(--line-2);padding-bottom:10px;margin-bottom:6px}
+  .arc-stage .flank-l .preset{padding:12px 14px;border:1px solid var(--line);background:linear-gradient(160deg, rgba(20,18,16,.5), rgba(10,9,8,.7));backdrop-filter:blur(10px);display:flex;justify-content:space-between;align-items:baseline;cursor:pointer}
+  .arc-stage .flank-l .preset.on{border-color:var(--mars);background:linear-gradient(160deg, rgba(60,15,12,.6), rgba(30,8,8,.8));box-shadow:inset 0 0 0 1px rgba(229,72,63,.2)}
+  .arc-stage .flank-l .preset .a{font-family:'Fraunces',serif;font-style:italic;font-weight:300;font-size:22px;letter-spacing:-.01em;color:var(--ink)}
+  .arc-stage .flank-l .preset.on .a{color:var(--mars)}
+  .arc-stage .flank-l .preset .b{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.22em;color:var(--ink-3);text-transform:uppercase}
+
+  /* right flank — session card stacked */
+  .arc-stage .flank-r{position:absolute;right:36px;top:50%;transform:translateY(-50%);width:240px;z-index:8;display:flex;flex-direction:column;gap:14px}
+  .arc-stage .flank-r .card{padding:18px;border:1px solid var(--line-2);background:linear-gradient(160deg, rgba(20,18,16,.55), rgba(10,9,8,.8));backdrop-filter:blur(12px);position:relative}
+  .arc-stage .flank-r .card::before{content:"";position:absolute;left:0;top:0;height:24px;width:1px;background:var(--mars)}
+  .arc-stage .flank-r .card .l{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.22em;color:var(--ink-3);text-transform:uppercase;margin-bottom:10px}
+  .arc-stage .flank-r .card .v{font-family:'Fraunces',serif;font-style:italic;font-weight:300;font-size:24px;letter-spacing:-.01em;color:var(--ink);line-height:1.2}
+  .arc-stage .flank-r .card .v.task{font-style:normal;font-family:'Inter',sans-serif;font-size:14px;font-weight:500;line-height:1.4;color:var(--ink)}
+  .arc-stage .flank-r .row2{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line-2)}
+  .arc-stage .flank-r .row2 .c{background:rgba(10,9,8,.7);padding:14px;display:flex;flex-direction:column;gap:4px}
+  .arc-stage .flank-r .row2 .c .l{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.22em;color:var(--ink-3);text-transform:uppercase}
+  .arc-stage .flank-r .row2 .c .v{font-family:'Fraunces',serif;font-weight:300;font-size:22px;letter-spacing:-.01em;color:var(--ink)}
+  .arc-stage .flank-r .row2 .c .v em{font-style:italic;color:var(--mars)}
+
+  /* corner brackets */
+  .arc-stage .br{position:absolute;width:14px;height:14px;border:1px solid var(--mars);z-index:9}
+  .arc-stage .br.tl{left:24px;top:24px;border-right:none;border-bottom:none}
+  .arc-stage .br.tr{right:24px;top:24px;border-left:none;border-bottom:none}
+  .arc-stage .br.bl{left:24px;bottom:24px;border-right:none;border-top:none}
+  .arc-stage .br.br2{right:24px;bottom:24px;border-left:none;border-top:none}
+
+  /* top scope — scrubbing thin readout */
+  .arc-stage .scope{position:absolute;left:48px;right:48px;top:36px;display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.32em;color:var(--ink-3);text-transform:uppercase;z-index:9}
+  .arc-stage .scope .live{color:var(--mars)}
+
+  /* ──────────────────────────────────────────── */
+  /*  TASKS — the CONSTELLATION                  */
+  /* ──────────────────────────────────────────── */
+  .const-stage{position:relative;height:920px;border:1px solid var(--line-2);border-radius:2px;overflow:hidden;background:radial-gradient(1100px 600px at 50% 50%, rgba(60,80,110,.08), transparent 60%), var(--void);margin-top:32px}
+  .const-stage .stars{opacity:.4}
+  .const-stage .scope{position:absolute;left:48px;right:48px;top:36px;display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.32em;color:var(--ink-3);text-transform:uppercase;z-index:9}
+  .const-stage .scope .live{color:var(--mars)}
+
+  .const-stage .lane{position:absolute;display:flex;flex-direction:column;gap:14px}
+  /* Burner — left, narrow, low opacity */
+  .lane-burner{left:48px;top:120px;bottom:120px;width:280px;opacity:.78}
+  .lane-burner .lh{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.32em;color:var(--ink-3);text-transform:uppercase;border-top:1px solid var(--line-2);padding-top:14px;margin-bottom:8px;display:flex;justify-content:space-between}
+  /* Active — center, wide */
+  .lane-active{left:380px;right:380px;top:96px;bottom:120px}
+  .lane-active .lh{font-family:'Fraunces',serif;font-weight:300;font-style:italic;font-size:32px;letter-spacing:-.02em;color:var(--ink);display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--mars);padding-top:14px;margin-bottom:18px}
+  .lane-active .lh .meta{font-family:'JetBrains Mono',monospace;font-size:10px;font-style:normal;letter-spacing:.32em;color:var(--mars);text-transform:uppercase}
+  /* Done — right, narrow */
+  .lane-done{right:48px;top:120px;bottom:120px;width:280px;opacity:.7}
+  .lane-done .lh{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.32em;color:var(--ink-3);text-transform:uppercase;border-top:1px solid var(--line-2);padding-top:14px;margin-bottom:8px;display:flex;justify-content:space-between}
+
+  .ctile{padding:14px 16px;background:linear-gradient(160deg, rgba(20,18,16,.45), rgba(10,9,8,.75));backdrop-filter:blur(10px);border:1px solid var(--line);position:relative}
+  .ctile::before{content:"";position:absolute;left:0;top:0;width:2px;height:16px;background:var(--ink-3)}
+  .ctile.work::before{background:var(--mars)}
+  .ctile.study::before{background:var(--copper)}
+  .ctile.life::before{background:var(--steel)}
+  .ctile.health::before{background:#7E9C7B}
+  .ctile .t{font-size:13px;color:var(--ink);line-height:1.35;margin-bottom:8px}
+  .ctile .m{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.18em;color:var(--ink-3);text-transform:uppercase}
+  .ctile.done .t{text-decoration:line-through;text-decoration-color:rgba(245,239,226,.25);color:var(--ink-2)}
+
+  /* Featured / hero active task */
+  .hero-task{padding:32px;background:linear-gradient(160deg, rgba(40,18,16,.7), rgba(10,9,8,.9)); backdrop-filter:blur(14px);border:1px solid var(--line-2);position:relative;overflow:hidden;margin-bottom:14px}
+  .hero-task::before{content:"";position:absolute;left:0;top:0;width:3px;height:48px;background:var(--mars);box-shadow:0 0 14px var(--mars)}
+  .hero-task::after{content:"";position:absolute;right:-60px;top:-60px;width:240px;height:240px;border-radius:50%;
+    background:radial-gradient(circle, rgba(229,72,63,.18), transparent 70%);}
+  .hero-task .ht-meta{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.32em;color:var(--mars);text-transform:uppercase;margin-bottom:14px;display:flex;gap:18px;align-items:center}
+  .hero-task .ht-meta .live{display:flex;align-items:center;gap:8px}
+  .hero-task .ht-meta .live::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--mars);box-shadow:0 0 12px var(--mars)}
+  .hero-task .ht-title{font-family:'Fraunces',serif;font-weight:300;font-size:34px;line-height:1.05;letter-spacing:-.02em;color:var(--ink);margin-bottom:14px;position:relative;z-index:2}
+  .hero-task .ht-title em{font-style:italic;color:var(--ink-2)}
+  .hero-task .ht-desc{font-size:14px;color:var(--ink-2);line-height:1.6;max-width:520px;margin-bottom:24px;position:relative;z-index:2}
+  .hero-task .ht-bar{height:2px;background:rgba(245,239,226,.08);position:relative;margin-bottom:14px}
+  .hero-task .ht-bar::after{content:"";position:absolute;left:0;top:0;bottom:0;width:54%;background:var(--mars);box-shadow:0 0 14px rgba(229,72,63,.6)}
+  .hero-task .ht-foot{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.22em;color:var(--ink-3);text-transform:uppercase}
+  .hero-task .ht-foot .v{color:var(--ink)}
+
+  /* Active secondary card */
+  .second-task{padding:18px 20px;background:linear-gradient(160deg, rgba(20,18,16,.55), rgba(10,9,8,.8));backdrop-filter:blur(10px);border:1px solid var(--line-2);position:relative}
+  .second-task::before{content:"";position:absolute;left:0;top:0;width:2px;height:24px;background:var(--mars-deep)}
+  .second-task .st-title{font-size:15px;color:var(--ink);font-weight:500;margin-bottom:6px}
+  .second-task .st-desc{font-size:12px;color:var(--ink-2);margin-bottom:12px;line-height:1.5}
+  .second-task .st-foot{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.22em;color:var(--ink-3);text-transform:uppercase}
+
+  /* Const overlay graphic - connecting lines between hero, side cards (decorative) */
+  .const-stage svg.connect{position:absolute;inset:0;pointer-events:none;z-index:1}
+
+  /* Bottom toolbar */
+  .const-stage .toolbar{position:absolute;left:48px;right:48px;bottom:36px;display:flex;justify-content:space-between;align-items:center;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.22em;color:var(--ink-3);text-transform:uppercase;z-index:9}
+  .const-stage .toolbar .l{display:flex;gap:12px;align-items:center}
+  .const-stage .toolbar .ft{padding:8px 14px;border:1px solid var(--line-2);color:var(--ink-2)}
+  .const-stage .toolbar .ft.on{background:rgba(245,239,226,.05);color:var(--ink)}
+  .const-stage .toolbar .add{padding:10px 16px;background:var(--mars);color:#fff;border:none;letter-spacing:.22em}
+
+  /* ──────────────────────────────────────────── */
+  /*  ACCOMPLISHMENTS — the LEDGER               */
+  /* ──────────────────────────────────────────── */
+  .ledger-stage{position:relative;height:920px;border:1px solid var(--line-2);border-radius:2px;overflow:hidden;background:linear-gradient(180deg, var(--void), #0C0A08);margin-top:32px}
+  .ledger-stage .scope{position:absolute;left:48px;right:48px;top:36px;display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.32em;color:var(--ink-3);text-transform:uppercase;z-index:9}
+
+  .ledger-stage .grid{position:absolute;left:48px;right:48px;top:96px;bottom:36px;display:grid;grid-template-columns:1fr 580px;gap:48px;z-index:5}
+
+  /* timeline column */
+  .timeline{position:relative;overflow:hidden;display:flex;flex-direction:column;gap:18px;padding-right:24px}
+  .timeline::before{content:"";position:absolute;left:38px;top:0;bottom:0;width:1px;background:linear-gradient(180deg, transparent, var(--line-2) 5%, var(--line-2) 95%, transparent)}
+  .timeline .day{font-family:'Fraunces',serif;font-weight:300;font-style:italic;font-size:38px;letter-spacing:-.02em;color:var(--ink-2);padding-left:80px;position:relative;display:flex;justify-content:space-between;align-items:baseline}
+  .timeline .day .dy-meta{font-family:'JetBrains Mono',monospace;font-size:10px;font-style:normal;letter-spacing:.22em;color:var(--ink-3);text-transform:uppercase}
+  .timeline .day::before{content:"";position:absolute;left:34px;top:50%;transform:translateY(-50%);width:9px;height:9px;border-radius:50%;background:var(--mars);box-shadow:0 0 14px var(--mars)}
+  .timeline .day.past::before{background:var(--ink-3);box-shadow:none}
+
+  .entry{position:relative;padding-left:80px;display:grid;grid-template-columns:1fr auto;gap:24px;align-items:start;cursor:pointer;padding-top:12px;padding-bottom:12px;border-top:1px solid var(--line)}
+  .entry::before{content:"";position:absolute;left:34px;top:24px;width:9px;height:9px;border-radius:50%;background:var(--void);border:1px solid var(--line-3)}
+  .entry.focus::before{background:var(--mars);border-color:var(--mars);box-shadow:0 0 12px var(--mars)}
+  .entry .stamp{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.22em;color:var(--ink-3);text-transform:uppercase;margin-bottom:6px}
+  .entry .stamp em{font-style:normal;color:var(--ink-2)}
+  .entry .body .t{font-family:'Fraunces',serif;font-weight:300;font-size:22px;letter-spacing:-.01em;color:var(--ink);line-height:1.25;margin-bottom:8px}
+  .entry.focus .body .t em{font-style:italic;color:var(--mars)}
+  .entry .body .n{font-size:13px;color:var(--ink-2);line-height:1.55;margin-bottom:10px;max-width:560px}
+  .entry .body .meta{display:flex;gap:10px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.22em;color:var(--ink-3);text-transform:uppercase}
+  .entry .body .meta .tag{padding:3px 7px;border:1px solid var(--line-2);color:var(--ink-2)}
+  .entry .body .meta .tag.work{color:var(--mars);border-color:rgba(229,72,63,.3)}
+  .entry .body .meta .tag.study{color:var(--copper);border-color:rgba(197,138,92,.3)}
+  .entry .att{display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--line-2);font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--ink-2);letter-spacing:.18em;text-transform:uppercase;align-self:start;margin-top:4px}
+  .entry .att .pdfdot{width:6px;height:6px;background:var(--mars);border-radius:50%}
+
+  /* PDF reading surface — the magazine spread */
+  .reader{position:relative;background:linear-gradient(180deg, #1A1814, #0F0E0B);border:1px solid var(--line-2);border-radius:2px;display:flex;flex-direction:column;overflow:hidden;box-shadow:inset 0 0 80px rgba(0,0,0,.6)}
+  .reader .rh{padding:18px 24px;border-bottom:1px solid var(--line-2);display:flex;justify-content:space-between;align-items:center;background:rgba(8,8,10,.6)}
+  .reader .rh .l{display:flex;flex-direction:column;gap:4px}
+  .reader .rh .l .k{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.32em;color:var(--ink-3);text-transform:uppercase}
+  .reader .rh .l .n{font-family:'Fraunces',serif;font-weight:300;font-style:italic;font-size:18px;color:var(--ink);letter-spacing:-.01em}
+  .reader .rh .r{display:flex;gap:8px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.18em;color:var(--ink-3);text-transform:uppercase}
+  .reader .rh .r .b{padding:6px 10px;border:1px solid var(--line-2)}
+  .reader .rh .r .b.on{color:var(--mars);border-color:rgba(229,72,63,.4)}
+
+  .reader .rb{flex:1;display:flex;align-items:center;justify-content:center;padding:36px;position:relative;overflow:hidden}
+  .reader .rb::before{content:"";position:absolute;inset:0;
+    background-image:radial-gradient(800px 400px at 50% 50%, rgba(245,239,226,.04), transparent 60%);}
+  .pdf-page{width:100%;max-width:480px;aspect-ratio:1/1.32;background:linear-gradient(180deg, #F4ECD8, #ECE2C8);box-shadow:0 40px 80px rgba(0,0,0,.5), 0 16px 30px rgba(0,0,0,.3), inset 0 0 0 1px rgba(0,0,0,.05);padding:48px 40px;display:flex;flex-direction:column;gap:8px;position:relative;z-index:2}
+  .pdf-page::after{content:"";position:absolute;left:0;right:0;bottom:0;height:32px;background:linear-gradient(180deg, transparent, rgba(0,0,0,.06))}
+  .pdf-page .ph1{font-family:'Fraunces',serif;font-weight:300;font-size:24px;color:#2A241B;margin-bottom:6px;letter-spacing:-.02em}
+  .pdf-page .ph2{font-family:'JetBrains Mono',monospace;font-size:9px;color:#7A6F5C;letter-spacing:.22em;text-transform:uppercase;margin-bottom:14px}
+  .pdf-page .pl{height:5px;background:#5C5142;width:100%;border-radius:1px;opacity:.4}
+  .pdf-page .pl.s{width:88%}
+  .pdf-page .pl.t{width:72%}
+  .pdf-page .pl.u{width:56%;margin-bottom:14px}
+  .pdf-page .img{height:140px;background:linear-gradient(135deg, #C8B999, #8A7C5E);border-radius:1px;margin:14px 0;position:relative}
+  .pdf-page .img::after{content:"FIG. 1 — VECTOR DECOMP.";position:absolute;bottom:-16px;left:0;font-family:'JetBrains Mono',monospace;font-size:8px;color:#7A6F5C;letter-spacing:.22em}
+  .pdf-page .ph2.cap{margin-top:18px}
+
+  .reader .rf{padding:14px 24px;border-top:1px solid var(--line-2);display:flex;justify-content:space-between;align-items:center;font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.22em;color:var(--ink-3);text-transform:uppercase;background:rgba(8,8,10,.6)}
+  .reader .rf .pages{display:flex;gap:14px;align-items:center}
+  .reader .rf .pages .now{color:var(--ink)}
+  .reader .rf .focus{color:var(--mars)}
+
+  /* ──────────────────────────────────────────── */
+  /*  MOBILE — phones                              */
+  /* ──────────────────────────────────────────── */
+  .phones-row{display:grid;grid-template-columns:repeat(4,1fr);gap:32px;margin-top:32px}
+  .phone{aspect-ratio:9/19.5;background:#06060A;border:1px solid rgba(245,239,226,.14);border-radius:42px;position:relative;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6), inset 0 0 0 6px #02020A}
+  .phone .notch{position:absolute;top:14px;left:50%;transform:translateX(-50%);width:96px;height:26px;background:#02020A;border-radius:999px;z-index:5}
+  .phone .stat{position:absolute;top:18px;left:28px;right:28px;display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:9px;color:#fff;letter-spacing:.1em;z-index:6}
+  .phone .stars{opacity:.4}
+  .phone .pcontent{position:absolute;inset:48px 14px 96px 14px;overflow:hidden;z-index:2}
+
+  /* Mobile dock — the orb */
+  .phone .dock{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);width:84px;height:84px;border-radius:50%;background:radial-gradient(circle at 30% 30%, var(--mars-glow), var(--mars-deep));box-shadow:0 0 40px rgba(229,72,63,.55), inset 0 -8px 16px rgba(0,0,0,.35);z-index:7;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:8px;color:#fff;letter-spacing:.22em;text-transform:uppercase}
+  .phone .dock span{font-family:'Fraunces',serif;font-style:italic;font-size:14px;letter-spacing:0;text-transform:none;font-weight:300}
+  .phone .satellites{position:absolute;left:14px;right:14px;bottom:32px;display:flex;justify-content:space-between;align-items:flex-end;z-index:6}
+  .phone .satellites .sat{display:flex;flex-direction:column;align-items:center;gap:4px;font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--ink-3);letter-spacing:.18em;text-transform:uppercase}
+  .phone .satellites .sat .ic{width:14px;height:14px;border:1px solid currentColor;border-radius:3px}
+  .phone .satellites .sat.on{color:var(--ink)}
+  .phone .satellites .pad{width:84px}
+
+  /* phone-1 — Cabin */
+  .ph1 .greet{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-3);letter-spacing:.22em;text-transform:uppercase;margin-bottom:10px}
+  .ph1 .name{font-family:'Fraunces',serif;font-weight:300;font-size:32px;letter-spacing:-.03em;line-height:.95;margin-bottom:18px}
+  .ph1 .name em{font-style:italic;color:var(--mars)}
+  .ph1 .focus-card{padding:14px;background:linear-gradient(160deg, rgba(40,18,16,.6), rgba(10,9,8,.85));border:1px solid var(--line-2);position:relative;margin-bottom:14px}
+  .ph1 .focus-card::before{content:"";position:absolute;left:0;top:0;width:1px;height:18px;background:var(--mars)}
+  .ph1 .focus-card .l{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.22em;color:var(--mars);text-transform:uppercase}
+  .ph1 .focus-card .v{font-family:'Fraunces',serif;font-weight:300;font-size:42px;letter-spacing:-.04em;line-height:1;color:var(--ink);margin-top:4px}
+  .ph1 .focus-card .v em{font-style:italic;font-size:18px;color:var(--ink-2)}
+  .ph1 .focus-card .b{height:2px;background:var(--line-2);margin-top:10px;position:relative}
+  .ph1 .focus-card .b::after{content:"";position:absolute;left:0;top:0;bottom:0;width:62%;background:var(--mars)}
+  .ph1 .stat-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .ph1 .stat-row .s{padding:10px;border:1px solid var(--line);background:rgba(20,18,16,.4)}
+  .ph1 .stat-row .s .l{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--ink-3);letter-spacing:.18em;text-transform:uppercase}
+  .ph1 .stat-row .s .v{font-family:'Fraunces',serif;font-weight:300;font-size:22px;color:var(--ink);line-height:1;margin-top:4px}
+  .ph1 .stat-row .s .v em{font-style:italic;color:var(--mars)}
+
+  /* phone-2 — Pomodoro */
+  .ph2 .stage-line{font-family:'JetBrains Mono',monospace;font-size:8.5px;color:var(--mars);letter-spacing:.32em;text-transform:uppercase;text-align:center;margin-top:6px}
+  .ph2 .ring-mob{width:200px;height:200px;border-radius:50%;border:1px solid var(--line-2);position:relative;margin:20px auto 16px}
+  .ph2 .ring-mob::after{
+    content:"";position:absolute;inset:0;border-radius:50%;
+    background:conic-gradient(from -90deg, var(--mars-glow), var(--mars) 240deg, rgba(229,72,63,.06) 240deg);
+    -webkit-mask:radial-gradient(circle, transparent 96px, #000 97px);
+    mask:radial-gradient(circle, transparent 96px, #000 97px);
+  }
+  .ph2 .ring-mob .num{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-family:'Fraunces',serif;font-weight:300;font-size:54px;letter-spacing:-.04em;line-height:1;text-align:center}
+  .ph2 .ring-mob .num em{font-style:italic;font-size:30px;color:var(--ink-2)}
+  .ph2 .ctrls-mob{display:flex;justify-content:center;gap:18px;margin-bottom:14px;align-items:center}
+  .ph2 .ctrls-mob .b{width:36px;height:36px;border-radius:50%;border:1px solid var(--line-2);color:var(--ink-2);display:flex;align-items:center;justify-content:center;font-size:11px}
+  .ph2 .ctrls-mob .play{width:54px;height:54px;background:radial-gradient(circle at 30% 30%, var(--mars-glow), var(--mars-deep));color:#fff;font-size:14px;border:none;box-shadow:0 0 26px rgba(229,72,63,.5)}
+  .ph2 .pres-mob{display:flex;justify-content:center;flex-wrap:wrap;gap:5px}
+  .ph2 .pres-mob .pp{padding:5px 9px;border:1px solid var(--line-2);font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-2);letter-spacing:.08em}
+  .ph2 .pres-mob .pp.on{background:rgba(229,72,63,.16);border-color:rgba(229,72,63,.5);color:var(--mars)}
+
+  /* phone-3 — Tasks */
+  .ph3 .pttl{font-family:'Fraunces',serif;font-weight:300;font-size:28px;letter-spacing:-.02em;margin-bottom:6px}
+  .ph3 .pttl em{font-style:italic;color:var(--mars)}
+  .ph3 .seg{display:flex;background:rgba(14,12,10,.6);border:1px solid var(--line);border-radius:0;padding:3px;margin-bottom:14px}
+  .ph3 .seg .si{flex:1;text-align:center;padding:6px;font-family:'JetBrains Mono',monospace;font-size:8.5px;color:var(--ink-3);letter-spacing:.16em;text-transform:uppercase}
+  .ph3 .seg .si.on{background:rgba(229,72,63,.16);color:var(--mars)}
+  .ph3 .tsk{padding:11px;background:linear-gradient(160deg, rgba(20,18,16,.55), rgba(10,9,8,.8));border:1px solid var(--line);position:relative;margin-bottom:8px}
+  .ph3 .tsk::before{content:"";position:absolute;left:0;top:0;width:2px;height:20px;background:var(--mars)}
+  .ph3 .tsk.life::before{background:var(--steel)}
+  .ph3 .tsk.study::before{background:var(--copper)}
+  .ph3 .tsk .tx{font-size:12px;color:var(--ink);line-height:1.3;margin-bottom:5px}
+  .ph3 .tsk .tm{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--ink-3);letter-spacing:.18em;text-transform:uppercase}
+
+  /* phone-4 — Log */
+  .ph4 .pttl{font-family:'Fraunces',serif;font-weight:300;font-size:28px;letter-spacing:-.02em;margin-bottom:4px}
+  .ph4 .pttl em{font-style:italic;color:var(--mars)}
+  .ph4 .psub{font-family:'JetBrains Mono',monospace;font-size:8.5px;color:var(--ink-3);letter-spacing:.22em;text-transform:uppercase;margin-bottom:14px}
+  .ph4 .ent{padding:12px;background:linear-gradient(160deg, rgba(20,18,16,.5), rgba(10,9,8,.8));border:1px solid var(--line);margin-bottom:8px;display:flex;gap:10px;position:relative}
+  .ph4 .ent::before{content:"";position:absolute;left:0;top:0;width:1px;height:20px;background:var(--mars)}
+  .ph4 .ent .th{width:30px;height:40px;background:linear-gradient(180deg, rgba(229,72,63,.18), rgba(229,72,63,.03));border:1px solid var(--line-2);position:relative;flex-shrink:0}
+  .ph4 .ent .th::after{content:"PDF";position:absolute;bottom:3px;left:0;right:0;text-align:center;font-family:'JetBrains Mono',monospace;font-size:6.5px;color:var(--ink-3);letter-spacing:.18em}
+  .ph4 .ent .ai{flex:1;min-width:0}
+  .ph4 .ent .at{font-family:'Fraunces',serif;font-weight:300;font-size:14px;color:var(--ink);line-height:1.25;margin-bottom:3px}
+  .ph4 .ent .at em{font-style:italic;color:var(--mars)}
+  .ph4 .ent .am{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--ink-3);letter-spacing:.18em;text-transform:uppercase}
+
+  .phone-cap{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-3);letter-spacing:.22em;text-transform:uppercase;margin-top:14px;text-align:center}
+
+  /* ──────────────────────────────────────────── */
+  /*  SYSTEM — type, color, motion                */
+  /* ──────────────────────────────────────────── */
+  .system-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:48px;margin-top:32px}
+
+  .typestack{padding:48px;background:linear-gradient(160deg,#0E0C0A, #060406);border:1px solid var(--line-2)}
+  .trow{display:grid;grid-template-columns:120px 1fr 200px;gap:32px;align-items:baseline;padding:24px 0;border-top:1px solid var(--line)}
+  .trow:first-of-type{border-top:none}
+  .trow .lab{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.32em;color:var(--ink-3);text-transform:uppercase}
+  .trow .meta{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-3);letter-spacing:.06em;text-align:right}
+  .trow .demo-display{font-family:'Fraunces',serif;font-weight:300;font-size:84px;letter-spacing:-.04em;line-height:.9}
+  .trow .demo-display em{font-style:italic;color:var(--mars)}
+  .trow .demo-h1{font-family:'Fraunces',serif;font-weight:300;font-size:44px;letter-spacing:-.02em;line-height:1}
+  .trow .demo-h2{font-family:'Inter',sans-serif;font-weight:500;font-size:24px;letter-spacing:-.005em}
+  .trow .demo-body{font-family:'Inter',sans-serif;font-size:15px;color:var(--ink-2);line-height:1.65}
+  .trow .demo-mono{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.32em;color:var(--ink-3);text-transform:uppercase}
+  .trow .demo-italic{font-family:'Fraunces',serif;font-style:italic;font-weight:300;font-size:38px;letter-spacing:-.01em;color:var(--ink-2)}
+
+  .syscol{display:flex;flex-direction:column;gap:24px}
+  .swcard{padding:32px;background:linear-gradient(160deg,#0E0C0A, #060406);border:1px solid var(--line-2)}
+  .swcard .st{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--mars);letter-spacing:.32em;text-transform:uppercase;margin-bottom:8px}
+  .swcard h4{font-family:'Fraunces',serif;font-weight:300;font-size:28px;margin-bottom:18px;letter-spacing:-.02em}
+  .swcard h4 em{font-style:italic;color:var(--ink-2)}
+  .swcard .swatches{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line)}
+  .swcard .sw{aspect-ratio:1/1.2;display:flex;flex-direction:column;justify-content:flex-end;padding:8px;font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:.18em;text-transform:uppercase}
+  .swcard .sw .nm{color:rgba(255,255,255,.85)}
+  .swcard .sw .hx{color:rgba(255,255,255,.55);font-size:8px}
+  .swcard ul{list-style:none;margin-top:20px}
+  .swcard li{padding:10px 0;border-top:1px solid var(--line);display:flex;justify-content:space-between;font-size:13px;color:var(--ink-2)}
+  .swcard li:first-child{border-top:none}
+  .swcard li .k{color:var(--ink)}
+  .swcard li .v{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-3);letter-spacing:.06em}
+
+  /* ──────────────────────────────────────────── */
+  /*  Closing                                     */
+  /* ──────────────────────────────────────────── */
+  .closing{padding:140px 56px 200px;text-align:center;position:relative;overflow:hidden;border-top:1px solid var(--line)}
+  .closing::before{content:"";position:absolute;left:50%;bottom:-40vmin;transform:translateX(-50%);width:120vmin;height:120vmin;border-radius:50%;
+    background:radial-gradient(circle at 50% 50%, rgba(229,72,63,.18), transparent 60%);}
+  .closing .sm{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.42em;color:var(--mars);text-transform:uppercase;margin-bottom:32px;position:relative}
+  .closing h2{font-family:'Fraunces',serif;font-weight:300;font-size:clamp(64px,9vw,140px);line-height:.92;letter-spacing:-.04em;max-width:1100px;margin:0 auto;position:relative}
+  .closing h2 em{font-style:italic;color:var(--ink-2)}
+  .closing h2 .red{color:var(--mars)}
+  .closing .signoff{margin-top:48px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.32em;color:var(--ink-3);text-transform:uppercase;position:relative}
+
+  /* ──────────────────────────────────────────── */
+  /*  Tablet adjustments                           */
+  /* ──────────────────────────────────────────── */
+  @media (max-width:1100px){
+    .composition,.arc-stage,.const-stage,.ledger-stage{height:auto;min-height:600px}
+    .system-grid{grid-template-columns:1fr}
+    .philosophy{grid-template-columns:1fr 1fr}
+    .phones-row{grid-template-columns:1fr 1fr}
+    .sec-head{grid-template-columns:1fr;gap:24px}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ HUD ============ -->
+<div class="hud">
+  <div class="l"><span class="mark"></span>ROBERTO'S AID · SIGNATURE DIRECTION · V0.2</div>
+  <div class="r">
+    <span>04 · 28 · 26</span>
+    <span class="blink">● LIVE</span>
+    <span>09:41:22 LOCAL</span>
+  </div>
+</div>
+
+<!-- ============ COVER ============ -->
+<section class="stage cover">
+  <div class="stars"></div>
+  <div class="orbit"></div>
+  <div class="planetoid"></div>
+  <div class="grain"></div>
+
+  <div class="cover-content">
+    <div class="cover-meta">
+      <div class="l"><span class="m"></span>EDITION 02 · SIGNATURE</div>
+      <div class="r">
+        <span>POSITION · 37.78 N / 122.41 W</span>
+        <span>·</span>
+        <span class="live">● 03 ORBITS PENDING</span>
+      </div>
+    </div>
+
+    <div class="cover-title">
+      <div class="eyebrow">— A PERSONAL OPERATING <span>OBSERVATORY</span></div>
+      <h1>Not a&nbsp;dashboard.<br>A <em>cabin</em> in <span class="strk">low&nbsp;orbit</span>.</h1>
+      <p class="lede">A signature direction for Roberto's Aid: editorial composition, sculpted matte panels, layered atmosphere, and a navigation system that orbits — not lines up. Calm enough to live in. Strange enough to remember.</p>
+    </div>
+
+    <div class="cover-rail">
+      <div class="cell">Concept<span class="v">Cinematic OS</span></div>
+      <div class="div"></div>
+      <div class="cell">Composition<span class="v">Asymmetric · sculpted</span></div>
+      <div class="div"></div>
+      <div class="cell">Navigation<span class="v">Radial orbit</span></div>
+      <div class="cell">Type<span class="v mono">Fraunces · Inter · JetBrains</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PHILOSOPHY ============ -->
+<section class="sec" style="padding-bottom:0">
+  <div class="sec-head">
+    <div class="meta"><span class="num">01 / DOCTRINE</span><span>The five rules.</span></div>
+    <div>
+      <h2>Five rules for the <em>cabin</em>.</h2>
+      <p class="lede">A signature interface earns its strangeness. These are the ones I'm holding the rest of the design against. Break one and we slide back into dashboard.</p>
+    </div>
+  </div>
+
+  <div class="philosophy">
+    <div class="p">
+      <div>
+        <div class="n">RULE 01</div>
+        <h3>Composition,<br>not <em>layout</em>.</h3>
+      </div>
+      <p>Every screen has a focal mass, a counter-mass, and air between them. Never a uniform 12-col grid; always weighted, off-axis, intentional.</p>
+      <div class="glyph">
+        <svg width="100" height="40" viewBox="0 0 100 40" fill="none">
+          <circle cx="22" cy="20" r="14" fill="#E5483F"/>
+          <circle cx="62" cy="20" r="6" stroke="#5C574F"/>
+          <line x1="22" y1="20" x2="62" y2="20" stroke="#3B4554" stroke-dasharray="2 2"/>
+          <circle cx="88" cy="14" r="2" fill="#A6A099"/>
+        </svg>
+      </div>
+    </div>
+    <div class="p">
+      <div>
+        <div class="n">RULE 02</div>
+        <h3>Depth is <em>physical</em>.</h3>
+      </div>
+      <p>Three depth tiers, not nine: the void, the deck, the panels. Glass is structural, not decorative. Every shadow has a light source. No floating cards.</p>
+      <div class="glyph">
+        <svg width="100" height="40" viewBox="0 0 100 40" fill="none">
+          <rect x="6" y="14" width="60" height="22" fill="#0E0C0A" stroke="#3B4554"/>
+          <rect x="22" y="6" width="60" height="22" fill="#1A1814" stroke="#5C574F"/>
+          <rect x="38" y="0" width="48" height="22" fill="#3B4554"/>
+        </svg>
+      </div>
+    </div>
+    <div class="p">
+      <div>
+        <div class="n">RULE 03</div>
+        <h3>One <em>red</em>, used like ink.</h3>
+      </div>
+      <p>Mars red is reserved for the live thing — the running session, the active task, the unread document. It is not a brand color. It is a status.</p>
+      <div class="glyph">
+        <svg width="100" height="40" viewBox="0 0 100 40" fill="none">
+          <line x1="0" y1="20" x2="92" y2="20" stroke="#5C574F" stroke-dasharray="3 4"/>
+          <circle cx="58" cy="20" r="6" fill="#E5483F"/>
+          <circle cx="58" cy="20" r="14" fill="none" stroke="#E5483F" opacity=".3"/>
+        </svg>
+      </div>
+    </div>
+    <div class="p">
+      <div>
+        <div class="n">RULE 04</div>
+        <h3>Type does the <em>theatre</em>.</h3>
+      </div>
+      <p>Display serif sets the mood. Monospace metadata grounds it. Body in Inter does the working. Numerals live big — readable from across the room.</p>
+      <div class="glyph">
+        <svg width="100" height="40" viewBox="0 0 100 40" fill="none">
+          <text x="0" y="32" font-family="Fraunces" font-size="34" font-weight="300" fill="#F5EFE2" font-style="italic">A</text>
+          <text x="34" y="32" font-family="Fraunces" font-size="34" font-weight="300" fill="#F5EFE2">a</text>
+          <text x="62" y="32" font-family="JetBrains Mono" font-size="11" fill="#A6A099" letter-spacing="2">001</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HUB COMPOSITION ============ -->
+<section class="sec">
+  <div class="sec-head">
+    <div class="meta"><span class="num">02 / NAVIGATION</span><span>The orbit, not the rail.</span></div>
+    <div>
+      <h2>Navigation as <em>orbit</em>.</h2>
+      <p class="lede">The hub replaces the icon sidebar with a radial — a single living glyph at the center, six modules orbiting, the active one tightening to it. The page composes around the orbit, not around the corners.</p>
+    </div>
+  </div>
+
+  <div class="composition">
+    <div class="stars"></div>
+
+    <!-- left rail (vestigial — context only) -->
+    <div class="left-shelf">
+      <div class="mark"></div>
+      <div class="axis"><div>CABIN · OBSERVATORY DECK</div></div>
+      <div class="badge">SCROLL <br>↓ ↑</div>
+    </div>
+
+    <!-- the radial nav -->
+    <div class="radial-wrap">
+      <div class="radial">
+        <div class="core">CABIN<span>orbit 01</span></div>
+        <div class="node n1 on">P<div class="lab">Pomodoro</div></div>
+        <div class="node n2">T<div class="lab">Timer</div></div>
+        <div class="node n3">≡<div class="lab">Tasks</div></div>
+        <div class="node n4">▣<div class="lab">Calendar</div></div>
+        <div class="node n5">◷<div class="lab">Habits</div></div>
+        <div class="node n6">★<div class="lab">Log</div></div>
+      </div>
+    </div>
+
+    <!-- crosshairs over center -->
+    <div class="crosshairs"></div>
+    <div class="ch-corner ch-tl"></div>
+    <div class="ch-corner ch-tr"></div>
+    <div class="ch-corner ch-bl"></div>
+    <div class="ch-corner ch-br"></div>
+    <div class="readout">
+      <span>SCAN · CABIN STATUS</span>
+      <span><span class="live">● ON</span> · 04 · 28 · 26 · 09:41</span>
+    </div>
+
+    <!-- floating edition caption -->
+    <div class="edition">
+      <div class="k">FOCAL · 01</div>
+      <h3>Today's <em>orbit</em>.</h3>
+      <p>Three sessions ahead, two habits behind, one page open. Click anywhere on the radial to dock.</p>
+    </div>
+
+    <!-- right info stack -->
+    <div class="right-stack">
+      <div class="panel focus-panel">
+        <div class="ph"><span class="pl">Now playing</span><span class="pr">CYCLE 03/06</span></div>
+        <div class="pb">
+          <div class="ttime">40<em>:00</em></div>
+          <div class="bar"></div>
+          <div class="meta"><span>● WORK · PHYSICS HOMEWORK</span><span class="v">68%</span></div>
+        </div>
+      </div>
+
+      <div class="panel agenda-panel">
+        <div class="ph"><span class="pl">Today's agenda</span><span class="pr">04 OF 07</span></div>
+        <div class="ag">
+          <span class="t">07:48</span>
+          <span class="d">Submit physics report<span class="sub">STUDY · 1H 28M</span></span>
+          <span class="x">DONE</span>
+        </div>
+        <div class="ag">
+          <span class="t">09:15</span>
+          <span class="d">Draft Q2 proposal<span class="sub">WORK · IN PROGRESS</span></span>
+          <span class="x live">● LIVE</span>
+        </div>
+        <div class="ag">
+          <span class="t">11:30</span>
+          <span class="d">Stand-up — backend<span class="sub">CALL · 30M</span></span>
+          <span class="x">SOON</span>
+        </div>
+        <div class="ag">
+          <span class="t">14:00</span>
+          <span class="d">Calculus reading<span class="sub">STUDY · 45M</span></span>
+          <span class="x">QUEUED</span>
+        </div>
+      </div>
+
+      <div class="panel alt stat-panel">
+        <div class="s"><div class="l">Focused</div><div class="v">2h <em>15m</em></div></div>
+        <div class="s"><div class="l">Streak</div><div class="v"><span class="red">12</span><em>d</em></div></div>
+        <div class="s"><div class="l">Tasks</div><div class="v">02<em>/04</em></div></div>
+        <div class="s"><div class="l">Habits</div><div class="v">04<em>/06</em></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ POMODORO — THE ARC ============ -->
+<section class="sec">
+  <div class="sec-head">
+    <div class="meta"><span class="num">03 / FOCUS</span><span>The arc.</span></div>
+    <div>
+      <h2>Focus as a<br>setting <em>sun</em>.</h2>
+      <p class="lede">The Pomodoro page is theatrical. A planet-sized arc anchors the bottom; the time hangs over it like a moon. Presets sit on the left flank; the live session sits on the right. Nothing in a card; everything in a composition.</p>
+    </div>
+  </div>
+
+  <div class="arc-stage">
+    <div class="stars"></div>
+
+    <div class="scope">
+      <span><span class="live">● FOCUS</span> · CYCLE 03 / 06 · 40m WORK · 5m BREAK</span>
+      <span>R · ↺ &nbsp;&nbsp; SPACE · ▶ &nbsp;&nbsp; → · NEXT</span>
+    </div>
+
+    <div class="br tl"></div><div class="br tr"></div><div class="br bl"></div><div class="br br2"></div>
+
+    <!-- planet arc -->
+    <div class="arc"></div>
+    <div class="arc-inner"></div>
+    <div class="horizon"></div>
+
+    <!-- numerals -->
+    <div class="numerals">
+      <div class="pretitle"><span class="dot"></span>WORK · 40 MIN</div>
+      <div class="big">40<em>:00</em></div>
+      <div class="sub">PHYSICS HOMEWORK · CHAPTER 03</div>
+    </div>
+
+    <!-- left flank presets -->
+    <div class="flank-l">
+      <div class="ftt">FOCUS · DURATION</div>
+      <div class="preset"><span class="a">25</span><span class="b">CLASSIC</span></div>
+      <div class="preset on"><span class="a">40</span><span class="b">DEEP</span></div>
+      <div class="preset"><span class="a">60</span><span class="b">FLOW</span></div>
+      <div class="preset"><span class="a">90</span><span class="b">EXPEDITION</span></div>
+    </div>
+
+    <!-- right flank session -->
+    <div class="flank-r">
+      <div class="card">
+        <div class="l">SESSION · LABEL</div>
+        <div class="v task">Physics Homework — Ch. 03 vector decomposition</div>
+      </div>
+      <div class="row2">
+        <div class="c"><div class="l">Sessions</div><div class="v">04</div></div>
+        <div class="c"><div class="l">Today</div><div class="v">2h <em>15</em></div></div>
+        <div class="c"><div class="l">Streak</div><div class="v"><em>12</em>d</div></div>
+        <div class="c"><div class="l">Break in</div><div class="v">40m</div></div>
+      </div>
+    </div>
+
+    <!-- deck -->
+    <div class="deck">
+      <div class="pips">
+        <div class="p done"></div><div class="p done"></div><div class="p now"></div><div class="p"></div><div class="p"></div><div class="p"></div>
+      </div>
+      <div class="ctrls">
+        <div class="b">↺</div>
+        <button class="play">▶</button>
+        <div class="b">⏭</div>
+      </div>
+      <div class="keys"><span>R</span><span class="mid">SPACE</span><span>→</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TASKS — CONSTELLATION ============ -->
+<section class="sec">
+  <div class="sec-head">
+    <div class="meta"><span class="num">04 / TASKS</span><span>The constellation.</span></div>
+    <div>
+      <h2>The hero gets<br>the <em>stage</em>.</h2>
+      <p class="lede">The board doesn't deal three equal columns. Active is the wide, illuminated center spread; Burner is a queue at the left margin; Done fades to a logbook on the right. A live task isn't a card — it's an editorial spread.</p>
+    </div>
+  </div>
+
+  <div class="const-stage">
+    <div class="stars"></div>
+    <div class="scope">
+      <span>TASKS · 09 IN ORBIT</span>
+      <span><span class="live">● 02 ACTIVE</span> · 04 BURNER · 03 DONE TODAY</span>
+    </div>
+
+    <!-- decorative connecting lines -->
+    <svg class="connect" viewBox="0 0 1200 920" preserveAspectRatio="none">
+      <line x1="320" y1="240" x2="420" y2="200" stroke="rgba(245,239,226,.06)" stroke-dasharray="2 4"/>
+      <line x1="320" y1="380" x2="420" y2="380" stroke="rgba(245,239,226,.06)" stroke-dasharray="2 4"/>
+      <line x1="780" y1="200" x2="880" y2="240" stroke="rgba(245,239,226,.06)" stroke-dasharray="2 4"/>
+      <line x1="780" y1="380" x2="880" y2="380" stroke="rgba(245,239,226,.06)" stroke-dasharray="2 4"/>
+    </svg>
+
+    <!-- BURNER -->
+    <div class="lane lane-burner">
+      <div class="lh"><span>Burner</span><span>04 · QUEUED</span></div>
+      <div class="ctile work">
+        <div class="t">Review Q2 budget draft</div>
+        <div class="m"><span>WORK</span><span>DUE FRI</span></div>
+      </div>
+      <div class="ctile study">
+        <div class="t">Read Calculus Ch. 03</div>
+        <div class="m"><span>STUDY</span><span>45M</span></div>
+      </div>
+      <div class="ctile">
+        <div class="t">Renew car insurance</div>
+        <div class="m"><span>ADMIN</span><span>05 · 04</span></div>
+      </div>
+      <div class="ctile life">
+        <div class="t">Reply to Mom</div>
+        <div class="m"><span>LIFE</span><span>—</span></div>
+      </div>
+    </div>
+
+    <!-- ACTIVE -->
+    <div class="lane lane-active">
+      <div class="lh"><em style="font-style:italic">Active</em><span class="meta">● IN ORBIT · 02</span></div>
+
+      <div class="hero-task">
+        <div class="ht-meta"><span class="live">LIVE · 1h 12m logged</span><span>·</span><span>STUDY · HIGH</span><span>·</span><span>SESSION 03 / 06</span></div>
+        <div class="ht-title">Finish <em>physics</em> homework — chapters 3 &amp; 4.</div>
+        <div class="ht-desc">All vector decomposition problems from sections 3.4 and 4.1. Triple-check the dot-product proofs against last lecture's notes before submitting. Estimated 45 minutes remaining.</div>
+        <div class="ht-bar"></div>
+        <div class="ht-foot">
+          <span>54% complete · 3 sessions logged</span>
+          <span class="v">DUE TODAY · 22:00</span>
+        </div>
+      </div>
+
+      <div class="second-task">
+        <div class="st-title">Draft project proposal</div>
+        <div class="st-desc">Outline + intro. Reuse last quarter's structure, swap in the new client brief.</div>
+        <div class="st-foot">
+          <span>WORK · MEDIUM · 25M LOGGED</span>
+          <span>1 SESSION</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- DONE -->
+    <div class="lane lane-done">
+      <div class="lh"><span>Logged</span><span>03 · TODAY</span></div>
+      <div class="ctile done health">
+        <div class="t">Morning run · 5km</div>
+        <div class="m"><span>06:42 · 32M</span><span>HEALTH</span></div>
+      </div>
+      <div class="ctile done work">
+        <div class="t">Stand-up notes</div>
+        <div class="m"><span>07:10 · 18M</span><span>WORK</span></div>
+      </div>
+      <div class="ctile done">
+        <div class="t">Inbox to zero</div>
+        <div class="m"><span>07:28 · 22M</span><span>ADMIN</span></div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="l">
+        <span class="ft on">All · 09</span>
+        <span class="ft">Work</span>
+        <span class="ft">Study</span>
+        <span class="ft">Life</span>
+        <span class="ft">+ Filter</span>
+      </div>
+      <div style="display:flex;gap:14px;align-items:center">
+        <span>Sort · Priority</span>
+        <button class="add">+ NEW TASK</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ACCOMPLISHMENTS — LEDGER ============ -->
+<section class="sec">
+  <div class="sec-head">
+    <div class="meta"><span class="num">05 / LEDGER</span><span>The reading room.</span></div>
+    <div>
+      <h2>The PDF gets<br>a <em>reading</em> room.</h2>
+      <p class="lede">A magazine spread: chronological dot-line on the left, a dedicated reading surface on the right. The PDF lives on warm cream paper, lit from above, breathing inside its own frame — never inside a card.</p>
+    </div>
+  </div>
+
+  <div class="ledger-stage">
+    <div class="scope">
+      <span>LEDGER · LIFETIME ENTRIES · 247</span>
+      <span><span style="color:var(--mars)">● TODAY</span> · 03 LOGGED · 02h 42m</span>
+    </div>
+
+    <div class="grid">
+      <div class="timeline">
+        <div class="day"><em>Today</em><span class="dy-meta">04 · 28 · TUE · 03 / 02H 42M</span></div>
+
+        <div class="entry focus">
+          <div class="body">
+            <div class="stamp"><em>07:48</em> · 1H 28M · STUDY</div>
+            <div class="t">Submitted <em>physics report</em>, ch. 3 &amp; 4.</div>
+            <div class="n">Vector notation cleaned up, professor's feedback incorporated. Final PDF attached — currently in preview.</div>
+            <div class="meta"><span class="tag study">STUDY</span><span class="tag">Linked: Physics homework</span></div>
+          </div>
+          <div class="att"><span class="pdfdot"></span>physics-report-v3.pdf · 2.4 MB</div>
+        </div>
+
+        <div class="entry">
+          <div class="body">
+            <div class="stamp"><em>06:32</em> · 42M · WORK</div>
+            <div class="t">Reviewed Q2 budget draft v2.</div>
+            <div class="n">Caught two off-by-one errors in the marketing line. Sent comments back.</div>
+            <div class="meta"><span class="tag work">WORK</span></div>
+          </div>
+          <div class="att"><span class="pdfdot"></span>budget-q2.xlsx · 184 KB</div>
+        </div>
+
+        <div class="entry">
+          <div class="body">
+            <div class="stamp"><em>06:00</em> · 32M · HEALTH</div>
+            <div class="t">Morning run, 5 km.</div>
+            <div class="n">First sub-25min in three weeks. Cool morning, perfect light.</div>
+            <div class="meta"><span class="tag">HEALTH</span></div>
+          </div>
+          <div class="att" style="opacity:.4">no attachment</div>
+        </div>
+
+        <div class="day past"><em>Yesterday</em><span class="dy-meta">04 · 27 · MON · 04 / 03H 50M</span></div>
+
+        <div class="entry">
+          <div class="body">
+            <div class="stamp"><em>21:14</em> · 1H 05M · WORK</div>
+            <div class="t">Finished design system audit.</div>
+            <div class="meta"><span class="tag work">WORK</span></div>
+          </div>
+          <div class="att"><span class="pdfdot"></span>audit-summary.pdf · 1.1 MB</div>
+        </div>
+
+      </div>
+
+      <!-- READER -->
+      <div class="reader">
+        <div class="rh">
+          <div class="l">
+            <span class="k">PREVIEW · 02:24:14 AGO</span>
+            <span class="n">physics-report-v3.pdf</span>
+          </div>
+          <div class="r">
+            <span class="b">⌕</span>
+            <span class="b">⇣</span>
+            <span class="b on">⤢</span>
+          </div>
+        </div>
+        <div class="rb">
+          <div class="pdf-page">
+            <div class="ph2">CHAPTER 03 · VECTOR DECOMPOSITION</div>
+            <div class="ph1">A note on basis selection</div>
+            <div class="ph2">SUBMITTED 04 · 28 · 26 · ROBERTO M.</div>
+            <div class="pl"></div>
+            <div class="pl s"></div>
+            <div class="pl t"></div>
+            <div class="pl u"></div>
+            <div class="img"></div>
+            <div class="ph2 cap">3.4 — projection onto orthogonal axes</div>
+            <div class="pl"></div>
+            <div class="pl s"></div>
+            <div class="pl t"></div>
+            <div class="pl u"></div>
+          </div>
+        </div>
+        <div class="rf">
+          <div class="pages"><span class="now">PAGE 01</span><span>OF 12</span><span>·</span><span>2.4 MB</span></div>
+          <span class="focus">⤢ FOCUS MODE</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ MOBILE ============ -->
+<section class="sec">
+  <div class="sec-head">
+    <div class="meta"><span class="num">06 / MOBILE</span><span>Phone-native.</span></div>
+    <div>
+      <h2>The orbit shrinks<br>to a single <em>orb</em>.</h2>
+      <p class="lede">On the phone, the radial collapses to a glowing dock — Mars, persistent, bottom-center. Tap it for a fan-out of modules; satellite tabs flank it for one-tap jumps to the most-used. No bottom-bar grid; no hamburger; just a planet and four moons.</p>
+    </div>
+  </div>
+
+  <div class="phones-row">
+    <div>
+      <div class="phone ph1">
+        <div class="notch"></div>
+        <div class="stat"><span>9:41</span><span>● ● ●</span></div>
+        <div class="stars"></div>
+        <div class="pcontent">
+          <div class="greet">TUE · APR 28 · OBSERVATORY</div>
+          <div class="name">Hello,<br><em>Roberto</em>.</div>
+          <div class="focus-card">
+            <div class="l">● FOCUS · CYCLE 03</div>
+            <div class="v">40<em>:00</em></div>
+            <div class="b"></div>
+          </div>
+          <div class="stat-row">
+            <div class="s"><div class="l">TASKS</div><div class="v"><em>02</em>/04</div></div>
+            <div class="s"><div class="l">HABITS</div><div class="v"><em>04</em>/06</div></div>
+            <div class="s"><div class="l">LOGGED</div><div class="v">2h<em>15</em></div></div>
+            <div class="s"><div class="l">STREAK</div><div class="v"><em>12</em>d</div></div>
+          </div>
+        </div>
+        <div class="satellites">
+          <div class="sat on"><div class="ic"></div>Cabin</div>
+          <div class="sat"><div class="ic"></div>Tasks</div>
+          <div class="pad"></div>
+          <div class="sat"><div class="ic"></div>Cal</div>
+          <div class="sat"><div class="ic"></div>Log</div>
+        </div>
+        <div class="dock">FOCUS<span>40m</span></div>
+      </div>
+      <div class="phone-cap">CABIN · ORB DOCK</div>
+    </div>
+
+    <div>
+      <div class="phone ph2">
+        <div class="notch"></div>
+        <div class="stat"><span>9:41</span><span>● ● ●</span></div>
+        <div class="stars"></div>
+        <div class="pcontent" style="display:flex;flex-direction:column;justify-content:center;align-items:center">
+          <div class="stage-line">● WORK · CYCLE 03 / 06</div>
+          <div class="ring-mob"><div class="num">40<em>:00</em></div></div>
+          <div class="ctrls-mob"><div class="b">↺</div><button class="play">▶</button><div class="b">⏭</div></div>
+          <div class="pres-mob"><span class="pp">25</span><span class="pp on">40</span><span class="pp">60</span><span class="pp">90</span></div>
+        </div>
+        <div class="satellites">
+          <div class="sat"><div class="ic"></div>Cabin</div>
+          <div class="sat"><div class="ic"></div>Tasks</div>
+          <div class="pad"></div>
+          <div class="sat"><div class="ic"></div>Cal</div>
+          <div class="sat"><div class="ic"></div>Log</div>
+        </div>
+        <div class="dock">FOCUS<span>40m</span></div>
+      </div>
+      <div class="phone-cap">FOCUS · ARC</div>
+    </div>
+
+    <div>
+      <div class="phone ph3">
+        <div class="notch"></div>
+        <div class="stat"><span>9:41</span><span>● ● ●</span></div>
+        <div class="stars dim"></div>
+        <div class="pcontent">
+          <div class="pttl"><em>Tasks</em></div>
+          <div class="seg"><div class="si">Burner 04</div><div class="si on">Active 02</div><div class="si">Done 03</div></div>
+          <div class="tsk"><div class="tx">Finish physics homework</div><div class="tm">STUDY · 1H 12M · HIGH</div></div>
+          <div class="tsk"><div class="tx">Draft project proposal</div><div class="tm">WORK · 25M · MED</div></div>
+          <div class="tsk life"><div class="tx">Plan weekend trip</div><div class="tm">LIFE · LOW</div></div>
+          <div class="tsk study"><div class="tx">Calculus reading Ch.3</div><div class="tm">STUDY · 45M · MED</div></div>
+        </div>
+        <div class="satellites">
+          <div class="sat"><div class="ic"></div>Cabin</div>
+          <div class="sat on"><div class="ic"></div>Tasks</div>
+          <div class="pad"></div>
+          <div class="sat"><div class="ic"></div>Cal</div>
+          <div class="sat"><div class="ic"></div>Log</div>
+        </div>
+        <div class="dock">FOCUS<span>40m</span></div>
+      </div>
+      <div class="phone-cap">TASKS · CONSTELLATION</div>
+    </div>
+
+    <div>
+      <div class="phone ph4">
+        <div class="notch"></div>
+        <div class="stat"><span>9:41</span><span>● ● ●</span></div>
+        <div class="stars dim"></div>
+        <div class="pcontent">
+          <div class="pttl"><em>Ledger</em></div>
+          <div class="psub">04 · 28 · 03 ENTRIES · 02h 42m</div>
+          <div class="ent"><div class="th"></div><div class="ai"><div class="at">Submitted <em>physics</em> report</div><div class="am">07:48 · 1H 28M · STUDY</div></div></div>
+          <div class="ent"><div class="th"></div><div class="ai"><div class="at">Reviewed budget draft v2</div><div class="am">06:32 · 42M · WORK</div></div></div>
+          <div class="ent"><div class="th" style="background:transparent"></div><div class="ai"><div class="at">Morning run · 5 km</div><div class="am">06:00 · 32M · HEALTH</div></div></div>
+        </div>
+        <div class="satellites">
+          <div class="sat"><div class="ic"></div>Cabin</div>
+          <div class="sat"><div class="ic"></div>Tasks</div>
+          <div class="pad"></div>
+          <div class="sat"><div class="ic"></div>Cal</div>
+          <div class="sat on"><div class="ic"></div>Log</div>
+        </div>
+        <div class="dock">FOCUS<span>40m</span></div>
+      </div>
+      <div class="phone-cap">LEDGER · READING</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SYSTEM ============ -->
+<section class="sec">
+  <div class="sec-head">
+    <div class="meta"><span class="num">07 / SYSTEM</span><span>The grammar.</span></div>
+    <div>
+      <h2>What this is<br>made <em>of</em>.</h2>
+      <p class="lede">A signature look needs a small system underneath. Three typefaces, three depth tiers, one accent. Every page in this document was drawn with these.</p>
+    </div>
+  </div>
+
+  <div class="system-grid">
+    <div class="typestack">
+      <div class="trow">
+        <div class="lab">Display</div>
+        <div class="demo-display">Roberto's <em>Aid</em>.</div>
+        <div class="meta">Fraunces 300 · 84–168 / -.04em</div>
+      </div>
+      <div class="trow">
+        <div class="lab">Italic acc.</div>
+        <div class="demo-italic">in low orbit</div>
+        <div class="meta">Fraunces italic 300</div>
+      </div>
+      <div class="trow">
+        <div class="lab">H1</div>
+        <div class="demo-h1">Pomodoro</div>
+        <div class="meta">Fraunces 300 · 36–48 / -.02em</div>
+      </div>
+      <div class="trow">
+        <div class="lab">H2</div>
+        <div class="demo-h2">Today's session</div>
+        <div class="meta">Inter Medium · 22–24</div>
+      </div>
+      <div class="trow">
+        <div class="lab">Body</div>
+        <div class="demo-body">Cycle 03 of 06 — focus is locked. Three orbits ahead before your long break, but you're already 68% through this one.</div>
+        <div class="meta">Inter Regular · 14–16 / 1.65</div>
+      </div>
+      <div class="trow">
+        <div class="lab">Mono</div>
+        <div class="demo-mono">● WORK · 40 MIN · CYCLE 03 / 06</div>
+        <div class="meta">JetBrains Mono · 9–11 / .32em</div>
+      </div>
+    </div>
+
+    <div class="syscol">
+      <div class="swcard">
+        <div class="st">PALETTE · DARK</div>
+        <h4>Mars on <em>void</em>.</h4>
+        <div class="swatches">
+          <div class="sw" style="background:#050507"><div class="nm">Void</div><div class="hx">#050507</div></div>
+          <div class="sw" style="background:#0E0C0A"><div class="nm">Deck</div><div class="hx">#0E0C0A</div></div>
+          <div class="sw" style="background:#1A1814"><div class="nm">Panel</div><div class="hx">#1A1814</div></div>
+          <div class="sw" style="background:#3B4554"><div class="nm">Steel</div><div class="hx">#3B4554</div></div>
+          <div class="sw" style="background:#E5483F"><div class="nm">Mars</div><div class="hx">#E5483F</div></div>
+          <div class="sw" style="background:#C58A5C"><div class="nm">Copper</div><div class="hx">#C58A5C</div></div>
+          <div class="sw" style="background:#E8DDC6;color:#2A241B"><div class="nm" style="color:#2A241B">Bone</div><div class="hx" style="color:rgba(42,36,27,.6)">#E8DDC6</div></div>
+          <div class="sw" style="background:#F5EFE2;color:#2A241B"><div class="nm" style="color:#2A241B">Ink</div><div class="hx" style="color:rgba(42,36,27,.6)">#F5EFE2</div></div>
+        </div>
+      </div>
+
+      <div class="swcard">
+        <div class="st">PRINCIPLES</div>
+        <h4>One <em>red</em>. Three <em>depths</em>.</h4>
+        <ul>
+          <li><span class="k">Mars red</span><span class="v">Reserved for live status</span></li>
+          <li><span class="k">Depth tiers</span><span class="v">Void · Deck · Panel</span></li>
+          <li><span class="k">Glass</span><span class="v">Backdrop blur 14 · 40% fill</span></li>
+          <li><span class="k">Hairline</span><span class="v">1 px @ 6% ink</span></li>
+          <li><span class="k">Corner brackets</span><span class="v">12 px · Mars red · for focus</span></li>
+          <li><span class="k">Numerals</span><span class="v">Always Fraunces, always big</span></li>
+          <li><span class="k">Metadata</span><span class="v">Always mono, always uppercase</span></li>
+          <li><span class="k">Motion</span><span class="v">2.4s easings · slow drift only</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CLOSING ============ -->
+<section class="closing">
+  <div class="stars dim"></div>
+  <div class="sm">— END OF EDITION 02</div>
+  <h2>A cabin you'd<br><em>want</em> to <span class="red">return to</span>.</h2>
+  <div class="signoff">REDESIGN EXPLORATION · V0.2 · SIGNATURE · 04 · 28 · 26</div>
+</section>
+
+</body>
+</html>

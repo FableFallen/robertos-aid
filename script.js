@@ -177,6 +177,47 @@ const supabaseClient = window.supabase
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
   : null;
 
+// ─── Supabase DB helpers ──────────────────────────────────
+async function sbLoadSettings(userId) {
+  if (!supabaseClient) return null;
+  const { data } = await supabaseClient
+    .from('user_settings').select('*').eq('user_id', userId).maybeSingle();
+  return data ?? null;
+}
+async function sbSaveSettings(userId, { theme, bgChoice, bgFilter, uiMotion, soundMuted }) {
+  if (!supabaseClient) throw new Error('No Supabase client');
+  // Map camelCase app state → exact snake_case DB columns in user_settings
+  const payload = {
+    user_id:    userId,
+    theme,
+    background:  bgChoice,   // DB col: background
+    filter:      bgFilter,   // DB col: filter
+    ui_motion:   uiMotion,
+    sound_muted: soundMuted,
+    updated_at:  new Date().toISOString(),
+  };
+  const { error } = await supabaseClient
+    .from('user_settings')
+    .upsert(payload, { onConflict: 'user_id' });
+  if (error) {
+    console.error('[ra] user_settings upsert failed:', error.message, '|', error.details, '|', error.hint);
+    throw error;
+  }
+}
+async function sbLoadAdminProfile(userId) {
+  if (!supabaseClient) return null;
+  const { data } = await supabaseClient
+    .from('profiles').select('is_admin').eq('id', userId).maybeSingle();
+  return data ?? null;
+}
+async function sbLoadActiveBgs() {
+  if (!supabaseClient) return [];
+  const { data } = await supabaseClient
+    .from('background_assets').select('*').eq('is_active', true)
+    .order('created_at', { ascending: true });
+  return data || [];
+}
+
 // ─── Icons ────────────────────────────────────────────────
 const SvgIcon = ({ d, size = 18 }) => (
   <svg width={size} height={size} viewBox="0 0 20 20" fill="none"
@@ -455,8 +496,11 @@ function Landing({ onNavigate }) {
 }
 
 // ─── Sidebar ──────────────────────────────────────────────
-function Sidebar({ screen, onNavigate, bgPanelOpen, onToggleBgPanel, soundMuted, onToggleSound, onOpenProfile, onOpenImportExport, theme, syncStatus }) {
-  const themeLabel = theme === 'tan' ? 'Light Tan' : 'Dark Space';
+const MOTION_LABELS = { still: 'Still', ambient: 'Ambient', orbit: 'Orbit' };
+
+function Sidebar({ screen, onNavigate, bgPanelOpen, onToggleBgPanel, soundMuted, onToggleSound, onOpenProfile, onOpenImportExport, theme, syncStatus, uiMotion }) {
+  const themeLabel  = theme === 'tan' ? 'Light Tan' : 'Dark Space';
+  const motionLabel = MOTION_LABELS[uiMotion] || 'Still';
   return (
     <nav className="sidebar">
       <button className="sidebar-logo"
@@ -501,8 +545,149 @@ function Sidebar({ screen, onNavigate, bgPanelOpen, onToggleBgPanel, soundMuted,
       <div style={{marginTop:5,paddingLeft:1,paddingBottom:2}}>
         <SyncBadge status={syncStatus || 'local'}/>
       </div>
-      <div className="sidebar-theme-pill" title={`Theme: ${themeLabel}`}>{themeLabel}</div>
+      <div className="sidebar-theme-pill" title={`Theme: ${themeLabel} · Motion: ${motionLabel}`}>
+        {themeLabel}<br/><span style={{color:'var(--red)',opacity:0.75}}>{motionLabel}</span>
+      </div>
     </nav>
+  );
+}
+
+// ─── Admin Background Manager ─────────────────────────────
+const BG_ALLOWED = ['png','jpg','jpeg','webp','mp4','webm'];
+
+function AdminBgPanel({ onRefresh }) {
+  const [allBgs,    setAllBgs]    = useState([]);
+  const [file,      setFile]      = useState(null);
+  const [bgName,    setBgName]    = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadMsg, setUploadMsg] = useState({ text: '', ok: true });
+  const fileRef = useRef(null);
+
+  const loadAll = useCallback(async () => {
+    if (!supabaseClient) return;
+    const { data } = await supabaseClient
+      .from('background_assets').select('*').order('created_at', { ascending: true });
+    setAllBgs(data || []);
+  }, []);
+
+  useEffect(() => { loadAll(); }, [loadAll]);
+
+  const handleFile = e => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const ext = f.name.split('.').pop().toLowerCase();
+    if (!BG_ALLOWED.includes(ext)) {
+      setUploadMsg({ text: 'Type not supported.', ok: false });
+      return;
+    }
+    setFile(f);
+    setUploadMsg({ text: '', ok: true });
+    if (!bgName.trim()) setBgName(f.name.replace(/\.[^.]+$/, '').replace(/_/g, ' '));
+  };
+
+  const handleUpload = async () => {
+    if (!file || !bgName.trim() || !supabaseClient) return;
+    const ext = file.name.split('.').pop().toLowerCase();
+    const type = ['mp4','webm'].includes(ext) ? 'video' : 'image';
+    const path = `uploads/${Date.now()}_${file.name.replace(/\s+/g,'_')}`;
+    setUploading(true);
+    setUploadMsg({ text: '', ok: true });
+    try {
+      const { error: upErr } = await supabaseClient.storage
+        .from('backgrounds').upload(path, file, { cacheControl: '3600', upsert: false });
+      if (upErr) throw upErr;
+
+      const { data: { publicUrl } } = supabaseClient.storage
+        .from('backgrounds').getPublicUrl(path);
+
+      const { error: dbErr } = await supabaseClient.from('background_assets').insert({
+        name: bgName.trim(), type, src: publicUrl,
+        storage_path: path, is_active: true,
+      });
+      if (dbErr) throw dbErr;
+
+      setUploadMsg({ text: '✓ Uploaded successfully.', ok: true });
+      setFile(null); setBgName('');
+      if (fileRef.current) fileRef.current.value = '';
+      await loadAll();
+      onRefresh();
+    } catch(e) {
+      setUploadMsg({ text: 'Error: ' + (e.message || 'Unknown'), ok: false });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleToggle = async bg => {
+    if (!supabaseClient) return;
+    await supabaseClient.from('background_assets')
+      .update({ is_active: !bg.is_active }).eq('id', bg.id);
+    await loadAll(); onRefresh();
+  };
+
+  const handleDelete = async bg => {
+    if (!supabaseClient) return;
+    if (!window.confirm(`Delete "${bg.name}"? This cannot be undone.`)) return;
+    if (bg.storage_path) {
+      await supabaseClient.storage.from('backgrounds').remove([bg.storage_path]);
+    }
+    await supabaseClient.from('background_assets').delete().eq('id', bg.id);
+    await loadAll(); onRefresh();
+  };
+
+  const mimeHint = file ? (['mp4','webm'].includes(file.name.split('.').pop().toLowerCase()) ? 'Video' : 'Image') : '';
+
+  return (
+    <div className="col g10">
+      {/* Upload form */}
+      <input ref={fileRef} type="file" accept=".png,.jpg,.jpeg,.webp,.mp4,.webm"
+        style={{display:'none'}} onChange={handleFile}/>
+      <button className="btn ghost sm" style={{alignSelf:'flex-start'}}
+        onClick={() => fileRef.current?.click()}>
+        {file ? `📎 ${file.name}` : '+ Choose File'}
+      </button>
+      {file && (
+        <div className="col g6">
+          {mimeHint && <div className="mono t9 c3">Type detected: {mimeHint}</div>}
+          <div className="field"><input value={bgName} onChange={e=>setBgName(e.target.value)} placeholder="Display name…"/></div>
+          <button className="btn primary sm" onClick={handleUpload} disabled={uploading || !bgName.trim()}>
+            {uploading ? 'Uploading…' : 'Upload to Cloud'}
+          </button>
+        </div>
+      )}
+      {uploadMsg.text && (
+        <div className="mono t9" style={{color: uploadMsg.ok ? '#4caf89' : 'var(--red-2)',lineHeight:1.5}}>
+          {uploadMsg.text}
+        </div>
+      )}
+
+      {/* Manage existing cloud bgs */}
+      {allBgs.length > 0 && (
+        <div className="col g4" style={{marginTop:4}}>
+          <div className="mono t9 c3 uc" style={{letterSpacing:'0.18em',marginBottom:2}}>Manage</div>
+          {allBgs.map(bg => (
+            <div key={bg.id} className="row ac g6"
+              style={{padding:'5px 8px',background:'rgba(245,239,226,0.03)',border:'1px solid var(--border)',borderRadius:'var(--radius)'}}>
+              <div className="col g1" style={{flex:1,minWidth:0}}>
+                <span className="t12" style={{color:'var(--text-2)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',display:'block'}}>{bg.name}</span>
+                <div className="row g4">
+                  <span className="mono" style={{fontSize:7,color:bg.type==='video'?'var(--copper)':'var(--text-3)',letterSpacing:'0.14em',textTransform:'uppercase'}}>
+                    {bg.type==='video'?'Video':'Image'}
+                  </span>
+                  {!bg.is_active && <span className="mono" style={{fontSize:7,color:'var(--red-2)',letterSpacing:'0.14em',textTransform:'uppercase'}}>Hidden</span>}
+                </div>
+              </div>
+              <button className="btn ghost sm" style={{padding:'0 7px',fontSize:9,flexShrink:0}}
+                onClick={() => handleToggle(bg)}>
+                {bg.is_active ? 'Hide' : 'Show'}
+              </button>
+              <button className="btn ghost sm" style={{padding:'0 6px',fontSize:12,color:'var(--red-2)',flexShrink:0}}
+                onClick={() => handleDelete(bg)}>×</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -513,7 +698,9 @@ const UI_MOTIONS = [
   { id: 'orbit',   label: 'Orbit',   desc: 'Cosmic drift' },
 ];
 
-function BgSettingsPanel({ bgChoice, bgFilter, onSetBgChoice, onSetBgFilter, onClose, theme, onSetTheme, uiMotion, onSetMotion }) {
+function BgSettingsPanel({ bgChoice, bgFilter, onSetBgChoice, onSetBgFilter, onClose, theme, onSetTheme, uiMotion, onSetMotion, cloudBgs, isAdmin, onRefreshBgs }) {
+  const allBgs = [...BACKGROUNDS, ...(cloudBgs || [])];
+
   useEffect(() => {
     const h = e => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', h);
@@ -547,24 +734,35 @@ function BgSettingsPanel({ bgChoice, bgFilter, onSetBgChoice, onSetBgFilter, onC
 
       <div className="bg-sect-divider"/>
 
-      {/* ── Background ────────────────────────── */}
+      {/* ── Background — local + cloud ─────────── */}
       <div className="bg-sect">Background</div>
       <div className="bg-thumb-row" style={{marginBottom:4}}>
-        {BACKGROUNDS.map(bg => (
-          <button key={bg.id}
-            className={`bg-thumb-btn ${bgChoice === bg.id ? 'active' : ''}`}
-            onClick={() => onSetBgChoice(bg.id)}>
-            <div className="bg-thumb">
-              {bg.type === 'image'
-                ? <img src={bg.src} alt={bg.label}/>
-                : <div style={{width:'100%',height:'100%',background:'linear-gradient(135deg,#0c0c0c,#1c1c1c)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-                    <span style={{fontSize:14,opacity:0.4}}>▶</span>
-                  </div>
-              }
-            </div>
-            <span className="mono" style={{fontSize:11}}>{bg.label}</span>
-          </button>
-        ))}
+        {allBgs.map(bg => {
+          const isCloud = !!bg.storage_path;
+          const isVideo = bg.type === 'video';
+          const label   = bg.label || bg.name || '';
+          return (
+            <button key={bg.id}
+              className={`bg-thumb-btn ${bgChoice === bg.id ? 'active' : ''}`}
+              onClick={() => onSetBgChoice(bg.id)}>
+              <div className="bg-thumb">
+                {bg.type === 'image'
+                  ? <img src={bg.src} alt={label}/>
+                  : <div style={{width:'100%',height:'100%',background:'linear-gradient(135deg,#0a0806,#1a1410)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                      <span style={{fontSize:13,color:'var(--text-3)'}}>▶</span>
+                    </div>
+                }
+              </div>
+              <div className="col g2" style={{flex:1,minWidth:0}}>
+                <span className="mono" style={{fontSize:10,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',display:'block'}}>{label}</span>
+                <div className="row g3" style={{flexWrap:'wrap'}}>
+                  {isCloud && <span className="bg-asset-badge cloud">Cloud</span>}
+                  {isVideo && <span className="bg-asset-badge">Video</span>}
+                </div>
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       <div className="bg-sect-divider"/>
@@ -586,7 +784,6 @@ function BgSettingsPanel({ bgChoice, bgFilter, onSetBgChoice, onSetBgFilter, onC
       {onSetMotion && (
         <>
           <div className="bg-sect-divider"/>
-          {/* ── UI Motion ───────────────────────── */}
           <div className="bg-sect">UI Motion</div>
           <div className="filter-btn-row">
             {UI_MOTIONS.map(m => (
@@ -601,15 +798,25 @@ function BgSettingsPanel({ bgChoice, bgFilter, onSetBgChoice, onSetBgFilter, onC
           </div>
         </>
       )}
+
+      {/* ── Admin backgrounds ──────────────────── */}
+      {isAdmin && (
+        <>
+          <div className="bg-sect-divider"/>
+          <div className="bg-sect" style={{color:'var(--red)',letterSpacing:'0.22em'}}>Admin Backgrounds</div>
+          <AdminBgPanel onRefresh={onRefreshBgs}/>
+        </>
+      )}
     </div>
   );
 }
 
 // ─── App Shell ────────────────────────────────────────────
-function AppShell({ screen, onNavigate, bgChoice, bgFilter, onSetBgChoice, onSetBgFilter, soundMuted, onToggleSound, onOpenProfile, theme, onSetTheme, uiMotion, onSetMotion, syncStatus, children }) {
+function AppShell({ screen, onNavigate, bgChoice, bgFilter, onSetBgChoice, onSetBgFilter, soundMuted, onToggleSound, onOpenProfile, theme, onSetTheme, uiMotion, onSetMotion, syncStatus, cloudBgs, isAdmin, onRefreshBgs, children }) {
   const [showBgPanel,      setShowBgPanel]      = useState(false);
   const [showImportExport, setShowImportExport] = useState(false);
-  const bg = BACKGROUNDS.find(b => b.id === bgChoice) || BACKGROUNDS[0];
+  const allBgs = [...BACKGROUNDS, ...(cloudBgs || [])];
+  const bg = allBgs.find(b => b.id === bgChoice) || BACKGROUNDS[0];
 
   const handleGlobalImport = (data, mode) => {
     if (mode === 'replace') {
@@ -631,7 +838,7 @@ function AppShell({ screen, onNavigate, bgChoice, bgFilter, onSetBgChoice, onSet
           <>
             <img src="backgrounds/genricparticle.png" className="app-bg-fallback" alt=""/>
             <video className="app-bg-video" autoPlay muted loop playsInline key={bg.src}>
-              <source src={bg.src} type="video/mp4"/>
+              <source src={bg.src} type={bg.src?.endsWith('.webm') ? 'video/webm' : 'video/mp4'}/>
             </video>
           </>
         ) : (
@@ -648,6 +855,7 @@ function AppShell({ screen, onNavigate, bgChoice, bgFilter, onSetBgChoice, onSet
         onOpenImportExport={() => { playSound('button'); setShowImportExport(true); }}
         theme={theme}
         syncStatus={syncStatus}
+        uiMotion={uiMotion}
       />
       {showBgPanel && (
         <>
@@ -659,6 +867,9 @@ function AppShell({ screen, onNavigate, bgChoice, bgFilter, onSetBgChoice, onSet
             onClose={() => setShowBgPanel(false)}
             theme={theme} onSetTheme={onSetTheme}
             uiMotion={uiMotion} onSetMotion={onSetMotion}
+            cloudBgs={cloudBgs || []}
+            isAdmin={isAdmin}
+            onRefreshBgs={onRefreshBgs}
           />
         </>
       )}
@@ -820,9 +1031,11 @@ function Pomodoro({ pomState: p, setPomState, taskTitles, onPostAccomplishment }
 
       <div className="pomo-layout row g20 flex1" style={{minHeight:0}}>
         <div className="panel flex1 col ac jc red-rim of-h rel">
-          <div className="abs" style={{inset:0,background:'radial-gradient(circle at center,rgba(229,72,77,0.06),transparent 60%)',pointerEvents:'none'}}/>
-          <div className="mono t10 c3 uc ls-wide" style={{position:'absolute',top:24,left:0,right:0,textAlign:'center',textShadow:'0 1px 4px rgba(0,0,0,0.8)'}}>
-            {phaseLabel} · {fmt2(timeLeft)} remaining
+          <div className="pomo-panel-bracket tl"/><div className="pomo-panel-bracket tr"/><div className="pomo-panel-bracket bl"/><div className="pomo-panel-bracket br"/>
+          <div className="pomo-horizon"/>
+          <div className="abs" style={{inset:0,background:'radial-gradient(900px 600px at 50% 110%,rgba(229,72,63,0.14),transparent 55%)',pointerEvents:'none'}}/>
+          <div className="mono t9 uc" style={{position:'absolute',top:24,left:0,right:0,textAlign:'center',letterSpacing:'0.32em',color:'var(--red)',opacity:0.85}}>
+            <span style={{display:'inline-block',width:6,height:6,borderRadius:'50%',background:'var(--red)',boxShadow:'0 0 8px var(--red)',verticalAlign:'middle',marginRight:8,marginBottom:1}}/>{phaseLabel} · {fmt2(timeLeft)} remaining
           </div>
 
           <svg width="300" height="300" viewBox="0 0 360 360">
@@ -834,33 +1047,33 @@ function Pomodoro({ pomState: p, setPomState, taskTitles, onPostAccomplishment }
                 stroke={i%5===0?'rgba(255,255,255,0.22)':'rgba(255,255,255,0.08)'} strokeWidth="1"/>;
             })}
             <circle cx="180" cy="180" r={R} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="10"/>
-            <circle cx="180" cy="180" r={R} fill="none" stroke="rgba(229,72,77,0.28)" strokeWidth="14"
+            <circle cx="180" cy="180" r={R} fill="none" stroke="rgba(229,72,63,0.22)" strokeWidth="12"
               strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C*(1-pct)}
               transform="rotate(-90 180 180)" filter="url(#pomo-glow)" style={{transition:tOpts}}/>
-            <circle cx="180" cy="180" r={R} fill="none" stroke="#E5484D" strokeWidth="4"
+            <circle cx="180" cy="180" r={R} fill="none" stroke="#E5483F" strokeWidth="3"
               strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C*(1-pct)}
               transform="rotate(-90 180 180)" style={{transition:tOpts}}/>
             {pct > 0.005 && (
               <g style={{transformOrigin:'180px 180px',transform:`rotate(${ringAngle}deg)`,transition:running?'transform 1.05s linear':'none'}}>
-                <circle cx={180+R} cy={180} r="10" fill="rgba(229,72,77,0.35)" filter="url(#pomo-glow)"/>
-                <circle cx={180+R} cy={180} r="5" fill="#FF6B6F"/>
+                <circle cx={180+R} cy={180} r="10" fill="rgba(229,72,63,0.32)" filter="url(#pomo-glow)"/>
+                <circle cx={180+R} cy={180} r="5" fill="#FF6B5C"/>
                 <circle cx={180+R} cy={180} r="2.5" fill="#fff"/>
               </g>
             )}
-            <text x="180" y="166" textAnchor="middle" fontFamily="'JetBrains Mono',monospace" fontSize="10" fill="rgba(236,231,221,0.30)" letterSpacing="3">{phaseLabel.toUpperCase()}</text>
-            <text x="180" y="214" textAnchor="middle" fontFamily="'Instrument Serif',serif" fontSize="60" fontWeight="400" fill="#ECE7DD">{fmt2(timeLeft)}</text>
-            <text x="180" y="234" textAnchor="middle" fontFamily="'JetBrains Mono',monospace" fontSize="9" fill="rgba(236,231,221,0.28)" letterSpacing="2">{Math.round(pct*100)}% COMPLETE</text>
+            <text x="180" y="164" textAnchor="middle" fontFamily="'JetBrains Mono',monospace" fontSize="9" fill="rgba(229,72,63,0.75)" letterSpacing="4">{phaseLabel.toUpperCase()}</text>
+            <text x="180" y="218" textAnchor="middle" fontFamily="'Fraunces',serif" fontSize="68" fontWeight="300" fill="#F5EFE2" letterSpacing="-4">{fmt2(timeLeft)}</text>
+            <text x="180" y="238" textAnchor="middle" fontFamily="'JetBrains Mono',monospace" fontSize="8.5" fill="rgba(245,239,226,0.25)" letterSpacing="3">{Math.round(pct*100)}% COMPLETE</text>
           </svg>
 
-          <div className="row g12 ac" style={{marginTop:-4,zIndex:1}}>
-            <button className="btn ghost" style={{width:40,height:40,borderRadius:'50%'}} onClick={reset} title="Reset">↺</button>
-            <button className="btn primary" style={{width:64,height:52,borderRadius:14,fontSize:20}} onClick={toggle}>{running?'❚❚':'▶'}</button>
-            <button className="btn ghost" style={{width:40,height:40,borderRadius:'50%'}} onClick={skip} title="Skip phase">⏭</button>
+          <div className="row g16 ac" style={{marginTop:4,zIndex:1}}>
+            <button className="btn ghost" style={{width:44,height:44,borderRadius:'50%',fontSize:16}} onClick={reset} title="Reset">↺</button>
+            <button className="btn primary" style={{width:80,height:80,borderRadius:'50%',fontSize:22,background:'radial-gradient(circle at 30% 30%,var(--red-2),var(--red-deep))',boxShadow:'0 0 50px rgba(229,72,63,.55),inset 0 -8px 16px rgba(0,0,0,.35)',border:'none'}} onClick={toggle}>{running?'❚❚':'▶'}</button>
+            <button className="btn ghost" style={{width:44,height:44,borderRadius:'50%',fontSize:16}} onClick={skip} title="Skip phase">⏭</button>
           </div>
-          <div className="row g6" style={{marginTop:16}}>
+          <div className="row g8" style={{marginTop:24}}>
             {Array.from({length:numDots},(_,i) => {
               const done=(i+1)<round, cur=(i+1)===round&&phase==='work';
-              return <div key={i} style={{width:18,height:4,borderRadius:2,background:done?'#E5484D':cur?'rgba(229,72,77,0.45)':'rgba(236,231,221,0.10)',boxShadow:done?'0 0 6px rgba(229,72,77,0.4)':'none'}}/>;
+              return <div key={i} style={{width:36,height:2,borderRadius:0,background:done?'var(--red)':cur?'var(--text)':'rgba(245,239,226,0.10)',boxShadow:done?'0 0 8px rgba(229,72,63,0.50)':cur?'0 0 10px rgba(245,239,226,0.35)':'none'}}/>;
             })}
           </div>
         </div>
@@ -1027,7 +1240,7 @@ function TimerScreen({ sessions, onAddSession, taskTitles, onPostAccomplishment 
           <div className="mono t10 c3 uc ls-wide" style={{marginBottom:24,textShadow:'0 1px 4px rgba(0,0,0,0.8)'}}>
             {mode==='countdown'?'◷ Countdown':'⏱ Stopwatch'}
           </div>
-          <div style={{fontFamily:"'Instrument Serif',serif",fontSize:80,lineHeight:1,letterSpacing:'-0.02em',fontWeight:400,color:'var(--text)',textShadow:'0 0 40px rgba(229,72,77,0.08),0 2px 20px rgba(0,0,0,0.7)'}}>
+          <div style={{fontFamily:"'Fraunces',serif",fontSize:88,lineHeight:1,letterSpacing:'-0.05em',fontWeight:300,color:'var(--text)',textShadow:'0 0 60px rgba(229,72,63,0.10),0 2px 24px rgba(0,0,0,0.7)'}}>
             {fmtH(display)}
           </div>
           {mode==='countdown' && (
@@ -1035,13 +1248,13 @@ function TimerScreen({ sessions, onAddSession, taskTitles, onPostAccomplishment 
               {PRESETS.map((p,i) => <button key={p.d} className={`btn sm ${i===preset?'primary':''}`} onClick={() => applyPreset(i)}>{p.d}</button>)}
             </div>
           )}
-          <div className="row g12 ac" style={{marginTop:32}}>
-            <button className="btn ghost" style={{width:42,height:42,borderRadius:'50%'}} onClick={reset}>↺</button>
-            <button className="btn primary" style={{width:64,height:52,borderRadius:14,fontSize:20}}
+          <div className="row g16 ac" style={{marginTop:32}}>
+            <button className="btn ghost" style={{width:44,height:44,borderRadius:'50%',fontSize:16}} onClick={reset}>↺</button>
+            <button className="btn primary" style={{width:72,height:72,borderRadius:'50%',fontSize:20,background:'radial-gradient(circle at 30% 30%,var(--red-2),var(--red-deep))',boxShadow:'0 0 40px rgba(229,72,63,.50),inset 0 -6px 14px rgba(0,0,0,.30)',border:'none'}}
               onClick={() => { playSound('button'); setRun(r => !r); }}>{running?'❚❚':'▶'}</button>
           </div>
-          <div className="mono t10 c3 uc" style={{marginTop:28,letterSpacing:'0.2em',textShadow:'0 1px 4px rgba(0,0,0,0.8)'}}>
-            {running?'● RUNNING':'● STANDING BY'}
+          <div className="mono t9 uc" style={{marginTop:28,letterSpacing:'0.32em',color:running?'var(--red)':'var(--text-3)'}}>
+            <span style={{display:'inline-block',width:5,height:5,borderRadius:'50%',background:running?'var(--red)':'var(--text-3)',boxShadow:running?'0 0 8px var(--red)':'none',verticalAlign:'middle',marginRight:7,marginBottom:1}}/>{running?'RUNNING':'STANDING BY'}
           </div>
         </div>
 
@@ -1360,7 +1573,7 @@ function Tasks({ cols, setCols, focusData, accomplishmentMap }) {
                 const focusKey=task.title.toLowerCase().trim();
                 const focus=focusData?.[focusKey], acc=accomplishmentMap?.[focusKey];
                 return (
-                  <div key={task.id} className={`task-card${isDrag?' is-dragging':''}${isDimmed?' dimmed':''}${task.priority==='high'?' prio-high':task.priority==='low'?' prio-low':''}`}
+                  <div key={task.id} className={`task-card${isDrag?' is-dragging':''}${isDimmed?' dimmed':''}${task.priority==='high'?' prio-high':task.priority==='low'?' prio-low':''}${task.label?' label-'+task.label.toLowerCase().replace(/\s+/g,'-'):''}`}
                     draggable onDragStart={e => handleDragStart(e,col,task.id)} onDragEnd={handleDragEnd}>
                     <div style={{fontSize:13,fontWeight:500,lineHeight:1.4,color:isDimmed?'rgba(255,255,255,0.42)':'var(--text)',textDecoration:isDimmed?'line-through':'none'}}>{task.title}</div>
                     <div className="row ac g5 wrap" style={{marginTop:8}}>
@@ -3613,9 +3826,14 @@ function App() {
   // Auto-open on first visit (when no name is saved yet)
   const [profileOpen, setProfileOpen] = useState(() => !loadState('ra_profile', DEFAULT_PROFILE).name.trim());
 
-  // ── Auth state ─────────────────────────────────────────
+  // ── Auth + sync state ──────────────────────────────────
   const [authUser,    setAuthUser]    = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [isAdmin,     setIsAdmin]     = useState(false);
+  const [cloudBgs,    setCloudBgs]    = useState([]);
+  const [syncStatus,  setSyncStatus]  = useState('local');
+  // Prevents settings-sync effect from firing during initial cloud-load
+  const syncEnabledRef = useRef(false);
 
   // ── Persistence useEffects ─────────────────────────────
   useEffect(() => {
@@ -3679,6 +3897,89 @@ function App() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // ── Cloud load: settings + admin + bgs on sign-in ─────
+  useEffect(() => {
+    if (!supabaseClient || !authUser) {
+      setSyncStatus('local');
+      setIsAdmin(false);
+      setCloudBgs([]);
+      syncEnabledRef.current = false;
+      return;
+    }
+    let cancelled = false;
+    setSyncStatus('syncing');
+
+    (async () => {
+      // 1. Load settings — errors here do NOT block admin/bg loading below
+      try {
+        const settings = await sbLoadSettings(authUser.id);
+        if (!cancelled && settings) {
+          // Read exact DB column names: background, filter (not bg_choice / bg_filter)
+          if (settings.theme)      setThemeState(settings.theme);
+          if (settings.background) setBgChoice(settings.background);
+          if (settings.filter)     setBgFilter(settings.filter);
+          if (settings.ui_motion)  setUiMotion(settings.ui_motion);
+          if (typeof settings.sound_muted === 'boolean') {
+            soundCtrl.muted = settings.sound_muted;
+            _setSoundMuted(settings.sound_muted);
+            safeLS.set('ra_sound_muted', String(settings.sound_muted));
+          }
+        }
+      } catch(e) {
+        console.error('[ra] settings load error:', e.message);
+      }
+
+      // 2. Admin check — runs even if settings load failed
+      try {
+        const prof = await sbLoadAdminProfile(authUser.id);
+        if (!cancelled) setIsAdmin(prof?.is_admin === true);
+      } catch(e) {
+        console.error('[ra] admin profile load error:', e.message);
+      }
+
+      // 3. Cloud backgrounds — runs even if settings load failed
+      try {
+        const bgs = await sbLoadActiveBgs();
+        if (!cancelled) setCloudBgs(bgs);
+      } catch(e) {
+        console.error('[ra] cloud bgs load error:', e.message);
+      }
+
+      if (!cancelled) {
+        setSyncStatus('synced');
+        syncEnabledRef.current = true; // enable ongoing saves only after full load
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [authUser]);
+
+  // ── Debounced settings sync to Supabase ───────────────
+  // syncEnabledRef guards against firing during the initial cloud load
+  useEffect(() => {
+    if (!authUser || !supabaseClient || !syncEnabledRef.current) return;
+    const timer = setTimeout(async () => {
+      setSyncStatus('syncing');
+      try {
+        // Pass camelCase app values — sbSaveSettings maps to DB columns internally
+        await sbSaveSettings(authUser.id, { theme, bgChoice, bgFilter, uiMotion, soundMuted });
+        setSyncStatus('synced');
+      } catch(e) {
+        // Error already logged inside sbSaveSettings
+        setSyncStatus('error');
+      }
+    }, 900);
+    return () => clearTimeout(timer);
+  // profile.name / initials intentionally omitted — not stored in user_settings
+  }, [authUser, theme, bgChoice, bgFilter, uiMotion, soundMuted]);
+
+  // ── Refresh cloud bgs (after admin upload/delete) ─────
+  const handleRefreshCloudBgs = useCallback(async () => {
+    if (!supabaseClient) return;
+    const bgs = await sbLoadActiveBgs();
+    setCloudBgs(bgs);
+  }, []);
+
   const handleSignIn = async (email, password) => {
     if (!supabaseClient) throw new Error('Auth unavailable — check connection.');
     const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
@@ -3696,8 +3997,6 @@ function App() {
     playSound('button');
     await supabaseClient.auth.signOut();
   };
-
-  const syncStatus = authUser ? 'signed-in' : 'local';
 
   // ── Pomodoro tick ──────────────────────────────────────
   const pomRef = useRef(pom);
@@ -3865,7 +4164,10 @@ function App() {
         onOpenProfile={() => { playSound('button'); setProfileOpen(true); }}
         theme={theme} onSetTheme={handleSetTheme}
         uiMotion={uiMotion} onSetMotion={setUiMotion}
-        syncStatus={syncStatus}>
+        syncStatus={syncStatus}
+        cloudBgs={cloudBgs}
+        isAdmin={isAdmin}
+        onRefreshBgs={handleRefreshCloudBgs}>
         {screen==='pomodoro' && <Pomodoro pomState={pom} setPomState={setPom} taskTitles={taskTitles} onPostAccomplishment={handlePostFromSession}/>}
         {screen==='timer'    && <TimerScreen sessions={timerSessions} onAddSession={s=>setTimerSess(prev=>[...prev,s])} taskTitles={taskTitles} onPostAccomplishment={handlePostFromSession}/>}
         {screen==='tasks'    && <Tasks cols={taskCols} setCols={setTaskCols} focusData={taskFocusMap} accomplishmentMap={accomplishMap}/>}
