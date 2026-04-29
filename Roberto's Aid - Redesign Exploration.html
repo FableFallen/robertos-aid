@@ -1,0 +1,1715 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Roberto's Aid — Redesign Exploration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#ECE7DD;
+    --ink-dim:#9A958B;
+    --ink-mute:#6A655C;
+    --bg:#0A0A0C;
+    --bg-2:#0E0E11;
+    --panel:#141418;
+    --panel-2:#1A1A1F;
+    --line:rgba(236,231,221,.08);
+    --line-2:rgba(236,231,221,.14);
+    --red:#E5484D;
+    --red-soft:#A23339;
+    --tan:#E9DDC7;
+    --tan-bg:#F2EADA;
+    --tan-ink:#2A241B;
+    --tan-line:rgba(42,36,27,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;font-weight:400;-webkit-font-smoothing:antialiased;line-height:1.5}
+  .mono{font-family:'JetBrains Mono',monospace;letter-spacing:.04em}
+  .serif{font-family:'Instrument Serif',serif;font-weight:400}
+  .doc{max-width:1240px;margin:0 auto;padding:80px 56px 160px}
+  /* ===== Cover ===== */
+  .cover{
+    min-height:88vh;display:flex;flex-direction:column;justify-content:space-between;
+    padding:64px 56px;
+    background:
+      radial-gradient(1200px 600px at 70% 30%, rgba(229,72,77,.12), transparent 60%),
+      radial-gradient(900px 500px at 20% 80%, rgba(120,140,180,.06), transparent 60%),
+      #08080A;
+    border-bottom:1px solid var(--line);
+    position:relative;overflow:hidden;
+  }
+  .cover::before{
+    content:"";position:absolute;inset:0;
+    background-image:
+      radial-gradient(1px 1px at 12% 22%, rgba(255,255,255,.6) 50%, transparent 51%),
+      radial-gradient(1px 1px at 88% 18%, rgba(255,255,255,.45) 50%, transparent 51%),
+      radial-gradient(1px 1px at 33% 70%, rgba(255,255,255,.5) 50%, transparent 51%),
+      radial-gradient(1px 1px at 62% 84%, rgba(255,255,255,.4) 50%, transparent 51%),
+      radial-gradient(1px 1px at 78% 62%, rgba(229,72,77,.6) 50%, transparent 51%),
+      radial-gradient(1px 1px at 22% 48%, rgba(255,255,255,.35) 50%, transparent 51%);
+    opacity:.7;
+  }
+  .cover-meta{display:flex;justify-content:space-between;align-items:flex-start;font-size:11px;color:var(--ink-dim);position:relative;z-index:1}
+  .cover-meta .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--red);margin-right:8px;vertical-align:middle}
+  .cover-title{position:relative;z-index:1}
+  .cover-title .eyebrow{font-size:11px;letter-spacing:.32em;color:var(--ink-dim);margin-bottom:24px;text-transform:uppercase}
+  .cover-title h1{font-family:'Instrument Serif',serif;font-size:104px;line-height:.95;font-weight:400;letter-spacing:-.02em}
+  .cover-title h1 em{font-style:italic;color:#C7BFAE}
+  .cover-title .sub{margin-top:24px;color:var(--ink-dim);max-width:560px;font-size:16px;line-height:1.6}
+  .cover-foot{display:grid;grid-template-columns:repeat(4,1fr);gap:40px;position:relative;z-index:1;font-size:12px}
+  .cover-foot .k{color:var(--ink-mute);text-transform:uppercase;letter-spacing:.18em;margin-bottom:8px;font-size:10px}
+  .cover-foot .v{color:var(--ink)}
+
+  /* ===== Section scaffolding ===== */
+  section{padding:120px 0;border-bottom:1px solid var(--line)}
+  .section-head{display:grid;grid-template-columns:140px 1fr;gap:48px;margin-bottom:64px;align-items:start}
+  .section-head .num{font-family:'JetBrains Mono',monospace;color:var(--red);font-size:12px;letter-spacing:.18em}
+  .section-head h2{font-family:'Instrument Serif',serif;font-size:56px;line-height:1;font-weight:400;letter-spacing:-.01em}
+  .section-head .lede{margin-top:18px;color:var(--ink-dim);max-width:640px;font-size:16px;line-height:1.65}
+
+  /* ===== Diagnosis grid ===== */
+  .diag{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}
+  .diag .cell{background:var(--bg-2);padding:32px 28px}
+  .diag .cell .tag{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;color:var(--red);margin-bottom:14px;text-transform:uppercase}
+  .diag .cell h3{font-size:18px;font-weight:500;margin-bottom:10px}
+  .diag .cell p{color:var(--ink-dim);font-size:14px;line-height:1.6}
+
+  /* ===== Direction cards ===== */
+  .direction{margin-bottom:96px}
+  .dir-head{display:grid;grid-template-columns:240px 1fr;gap:40px;margin-bottom:32px;padding-bottom:24px;border-bottom:1px solid var(--line)}
+  .dir-num{font-family:'Instrument Serif',serif;font-size:120px;line-height:.85;color:transparent;-webkit-text-stroke:1px var(--ink-dim)}
+  .dir-name .label{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.22em;color:var(--ink-mute);text-transform:uppercase;margin-bottom:10px}
+  .dir-name h3{font-family:'Instrument Serif',serif;font-size:44px;line-height:1.05;letter-spacing:-.01em;margin-bottom:14px}
+  .dir-name h3 em{font-style:italic;color:var(--red)}
+  .dir-name p{color:var(--ink-dim);max-width:680px;font-size:15.5px;line-height:1.65}
+
+  /* mock frame */
+  .mock{
+    position:relative;border:1px solid var(--line-2);border-radius:8px;overflow:hidden;
+    aspect-ratio:16/9;background:#0B0B0E;
+  }
+  .mock-row{display:grid;grid-template-columns:1.4fr 1fr;gap:24px;margin-top:24px}
+  .mock-cap{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;color:var(--ink-mute);text-transform:uppercase;margin-bottom:10px}
+
+  /* --- 8-pillar grid --- */
+  .pillars{display:grid;grid-template-columns:repeat(2,1fr);gap:0;margin-top:32px;border:1px solid var(--line)}
+  .pillar{padding:22px 24px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);min-height:140px}
+  .pillar:nth-child(2n){border-right:none}
+  .pillar:nth-last-child(-n+2){border-bottom:none}
+  .pillar .pl{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--red);letter-spacing:.18em;text-transform:uppercase;margin-bottom:8px}
+  .pillar .pn{font-size:14px;font-weight:500;margin-bottom:6px;color:var(--ink)}
+  .pillar .pd{font-size:13px;color:var(--ink-dim);line-height:1.55}
+
+  /* swatches */
+  .swatch-row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+  .sw{width:36px;height:36px;border-radius:4px;border:1px solid var(--line)}
+  .sw-lg{width:auto;flex:1;height:48px;border-radius:4px;display:flex;align-items:flex-end;padding:6px 8px;font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,255,255,.7)}
+
+  /* ============ DIRECTION 1 — OBSIDIAN OBSERVATORY ============ */
+  .d1 .mock{
+    background:
+      radial-gradient(800px 400px at 50% 50%, rgba(229,72,77,.05), transparent 60%),
+      linear-gradient(180deg,#0A0A0D, #050507);
+  }
+  .d1 .mock::before{
+    content:"";position:absolute;inset:0;
+    background-image:
+      radial-gradient(1px 1px at 8% 14%,rgba(255,255,255,.4) 50%,transparent 51%),
+      radial-gradient(1px 1px at 22% 32%,rgba(255,255,255,.3) 50%,transparent 51%),
+      radial-gradient(1px 1px at 38% 12%,rgba(255,255,255,.5) 50%,transparent 51%),
+      radial-gradient(1px 1px at 56% 28%,rgba(255,255,255,.3) 50%,transparent 51%),
+      radial-gradient(1px 1px at 78% 18%,rgba(255,255,255,.4) 50%,transparent 51%),
+      radial-gradient(1px 1px at 92% 64%,rgba(255,255,255,.35) 50%,transparent 51%),
+      radial-gradient(1px 1px at 14% 78%,rgba(255,255,255,.3) 50%,transparent 51%),
+      radial-gradient(1.5px 1.5px at 64% 82%,rgba(229,72,77,.6) 50%,transparent 51%);
+  }
+  .d1 .nav{position:absolute;left:0;top:0;bottom:0;width:64px;border-right:1px solid var(--line);background:rgba(8,8,10,.7);backdrop-filter:blur(8px);display:flex;flex-direction:column;align-items:center;padding:18px 0;gap:18px;z-index:2}
+  .d1 .nav .logo{width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 35% 35%, #C7322F, #2A0506);box-shadow:0 0 20px rgba(229,72,77,.4)}
+  .d1 .nav .ni{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--ink-mute)}
+  .d1 .nav .ni.active{background:rgba(229,72,77,.12);color:#FFC4C0;box-shadow:inset 0 0 0 1px rgba(229,72,77,.3)}
+  .d1 .stage{position:absolute;inset:0 320px 0 64px;display:flex;flex-direction:column;padding:32px 40px;z-index:1}
+  .d1 .crumb{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-mute);letter-spacing:.18em;text-transform:uppercase}
+  .d1 .pgtitle{font-family:'Instrument Serif',serif;font-size:34px;margin-top:6px}
+  .d1 .ring-wrap{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:24px}
+  .d1 .ring{width:240px;height:240px;border-radius:50%;border:1px solid var(--line-2);position:relative;display:flex;align-items:center;justify-content:center}
+  .d1 .ring::before{content:"";position:absolute;inset:-20px;border-radius:50%;border:1px dashed rgba(229,72,77,.18)}
+  .d1 .ring::after{
+    content:"";position:absolute;inset:0;border-radius:50%;
+    background:conic-gradient(from -90deg, var(--red) 0deg, var(--red) 252deg, transparent 252deg, transparent 360deg);
+    -webkit-mask:radial-gradient(circle, transparent 119px, #000 120px);
+    mask:radial-gradient(circle, transparent 119px, #000 120px);
+    opacity:.85;
+  }
+  .d1 .time{font-family:'Instrument Serif',serif;font-size:64px;letter-spacing:-.02em;position:relative;z-index:1}
+  .d1 .ctrls{display:flex;gap:14px;align-items:center}
+  .d1 .ctrls .b{width:36px;height:36px;border-radius:50%;border:1px solid var(--line-2);display:flex;align-items:center;justify-content:center;color:var(--ink-dim);font-size:11px}
+  .d1 .ctrls .play{width:48px;height:48px;background:var(--red);border:none;color:#fff;box-shadow:0 0 30px rgba(229,72,77,.5)}
+  .d1 .panel{position:absolute;top:24px;right:24px;bottom:24px;width:280px;background:rgba(20,20,24,.75);backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:6px;padding:20px;z-index:2}
+  .d1 .panel h4{font-size:11px;letter-spacing:.18em;color:var(--ink-mute);font-family:'JetBrains Mono',monospace;text-transform:uppercase;margin-bottom:14px}
+  .d1 .pgrp{margin-bottom:18px}
+  .d1 .pgrp .lab{font-size:10px;color:var(--ink-mute);font-family:'JetBrains Mono',monospace;letter-spacing:.16em;text-transform:uppercase;margin-bottom:6px}
+  .d1 .pgrp .row{display:flex;gap:6px;flex-wrap:wrap}
+  .d1 .chip{font-size:11px;padding:6px 10px;border:1px solid var(--line-2);border-radius:3px;color:var(--ink-dim);font-family:'JetBrains Mono',monospace}
+  .d1 .chip.on{background:rgba(229,72,77,.12);border-color:rgba(229,72,77,.4);color:#FFC4C0}
+
+  /* ============ DIRECTION 2 — VOYAGER LOG ============ */
+  .d2 .mock{background:linear-gradient(180deg,#10100E,#0A0A09)}
+  .d2 .frame{position:absolute;inset:24px;border:1px solid rgba(233,221,199,.18);border-radius:2px}
+  .d2 .corners::before,.d2 .corners::after{content:"";position:absolute;width:14px;height:14px}
+  .d2 .corners::before{top:18px;left:18px;border-top:1px solid var(--red);border-left:1px solid var(--red)}
+  .d2 .corners::after{bottom:18px;right:18px;border-bottom:1px solid var(--red);border-right:1px solid var(--red)}
+  .d2 .topbar{position:absolute;top:36px;left:36px;right:36px;display:flex;justify-content:space-between;align-items:center;z-index:2}
+  .d2 .topbar .l{display:flex;gap:24px;align-items:center;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;color:var(--ink-mute);text-transform:uppercase}
+  .d2 .topbar .r{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--red);letter-spacing:.18em}
+  .d2 .tabs{position:absolute;top:80px;left:36px;display:flex;gap:0;z-index:2}
+  .d2 .tab{padding:10px 18px;border:1px solid var(--line);border-right:none;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.16em;color:var(--ink-mute);text-transform:uppercase}
+  .d2 .tab:last-child{border-right:1px solid var(--line)}
+  .d2 .tab.on{background:rgba(233,221,199,.06);color:var(--ink);border-color:rgba(233,221,199,.18)}
+  .d2 .body{position:absolute;inset:130px 36px 36px 36px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--line)}
+  .d2 .col{background:#0E0E0C;padding:18px}
+  .d2 .col h5{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.2em;color:var(--red);margin-bottom:4px;text-transform:uppercase}
+  .d2 .col .csub{font-size:10px;color:var(--ink-mute);font-family:'JetBrains Mono',monospace;margin-bottom:14px;letter-spacing:.12em}
+  .d2 .task{padding:10px 0;border-top:1px solid var(--line);font-size:12px;color:var(--ink)}
+  .d2 .task:first-of-type{border-top:none}
+  .d2 .task .t1{font-size:12px;margin-bottom:3px}
+  .d2 .task .t2{font-size:10px;color:var(--ink-mute);font-family:'JetBrains Mono',monospace;letter-spacing:.1em}
+
+  /* ============ DIRECTION 3 — LUNAR ATLAS ============ */
+  .d3 .mock{background:linear-gradient(180deg,#F4ECDA,#E8DFC9)}
+  .d3 .nav{position:absolute;top:24px;left:24px;right:24px;display:flex;justify-content:space-between;align-items:center;z-index:2}
+  .d3 .navL{display:flex;gap:28px;align-items:center}
+  .d3 .navL .l{width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#fff,#C8B999 70%, #8E7E5D);box-shadow:0 0 0 1px rgba(42,36,27,.15), 0 6px 20px rgba(42,36,27,.15)}
+  .d3 .navL nav{display:flex;gap:22px;font-family:'Instrument Serif',serif;font-style:italic;font-size:18px;color:#5C5142}
+  .d3 .navL nav .on{color:#2A241B;font-style:normal;font-weight:500;font-family:'Inter',sans-serif;font-size:13px;border-bottom:1px solid var(--red)}
+  .d3 .navR{display:flex;gap:14px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#7A6F5C;letter-spacing:.16em;text-transform:uppercase}
+  .d3 .hero{position:absolute;top:90px;left:24px;right:24px;bottom:24px;display:grid;grid-template-columns:1.3fr 1fr;gap:24px}
+  .d3 .heroL{background:#FBF5E5;border:1px solid rgba(42,36,27,.08);border-radius:4px;padding:36px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+  .d3 .heroL::after{
+    content:"";position:absolute;right:-80px;top:-80px;width:280px;height:280px;border-radius:50%;
+    background:radial-gradient(circle at 30% 30%, #E0D2B0, #B59E73 60%, #6B5C42);
+    opacity:.5;
+  }
+  .d3 .heroL .ttl{font-family:'Instrument Serif',serif;font-size:46px;color:#2A241B;line-height:1;letter-spacing:-.01em;position:relative;z-index:1}
+  .d3 .heroL .ttl em{font-style:italic;color:var(--red)}
+  .d3 .heroL .meta{display:flex;gap:24px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.16em;color:#7A6F5C;text-transform:uppercase;position:relative;z-index:1}
+  .d3 .heroR{display:grid;grid-template-rows:1fr 1fr;gap:16px}
+  .d3 .card{background:#FBF5E5;border:1px solid rgba(42,36,27,.08);border-radius:4px;padding:20px;display:flex;flex-direction:column;justify-content:space-between}
+  .d3 .card .k{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.18em;color:#7A6F5C;text-transform:uppercase}
+  .d3 .card .v{font-family:'Instrument Serif',serif;font-size:32px;color:#2A241B;line-height:1}
+  .d3 .card .v em{font-style:italic;color:var(--red)}
+
+  /* ===== Comparison + winner ===== */
+  .compare{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);margin-top:48px}
+  .compare .col{background:var(--bg-2);padding:28px}
+  .compare .col h4{font-size:14px;font-weight:500;margin-bottom:6px}
+  .compare .col .sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-mute);letter-spacing:.18em;text-transform:uppercase;margin-bottom:18px}
+  .compare .row{display:flex;justify-content:space-between;font-size:12px;padding:8px 0;border-top:1px solid var(--line)}
+  .compare .row .k{color:var(--ink-mute)}
+  .compare .row .v{color:var(--ink);font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em}
+  .compare .col.win{background:#16110F;box-shadow:inset 0 0 0 1px rgba(229,72,77,.4)}
+  .compare .col.win h4{color:#FFC4C0}
+
+  /* ===== Detailed mocks ===== */
+  .pick-banner{margin:32px 0 0;padding:28px;background:linear-gradient(90deg, rgba(229,72,77,.08), transparent 70%);border:1px solid rgba(229,72,77,.25);border-radius:4px;display:flex;align-items:center;gap:24px}
+  .pick-banner .num{font-family:'Instrument Serif',serif;font-size:60px;color:var(--red);line-height:1}
+  .pick-banner .t .l{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.22em;color:#FFC4C0;text-transform:uppercase;margin-bottom:6px}
+  .pick-banner .t .h{font-family:'Instrument Serif',serif;font-size:26px;color:var(--ink);margin-bottom:4px}
+  .pick-banner .t .d{color:var(--ink-dim);font-size:14px;max-width:680px}
+
+  .mock-detail{aspect-ratio:auto;height:680px;margin-top:32px}
+  .mock-detail.wide{height:740px}
+
+  /* ===== Pomodoro detail ===== */
+  .pdom{background:radial-gradient(1000px 600px at 50% 60%, rgba(229,72,77,.06), transparent 60%), #08080A; position:absolute;inset:0}
+  .pdom::after{
+    content:"";position:absolute;inset:0;
+    background-image:
+      radial-gradient(1px 1px at 8% 14%,rgba(255,255,255,.45) 50%,transparent 51%),
+      radial-gradient(1px 1px at 22% 32%,rgba(255,255,255,.3) 50%,transparent 51%),
+      radial-gradient(1px 1px at 38% 12%,rgba(255,255,255,.5) 50%,transparent 51%),
+      radial-gradient(1px 1px at 56% 28%,rgba(255,255,255,.3) 50%,transparent 51%),
+      radial-gradient(1.5px 1.5px at 78% 18%,rgba(255,255,255,.4) 50%,transparent 51%),
+      radial-gradient(1px 1px at 92% 64%,rgba(255,255,255,.35) 50%,transparent 51%),
+      radial-gradient(1px 1px at 14% 78%,rgba(255,255,255,.3) 50%,transparent 51%),
+      radial-gradient(1.5px 1.5px at 64% 82%,rgba(229,72,77,.6) 50%,transparent 51%),
+      radial-gradient(1px 1px at 48% 92%,rgba(255,255,255,.3) 50%,transparent 51%);
+    pointer-events:none;
+  }
+  .ddetail .nav{position:absolute;left:0;top:0;bottom:0;width:72px;border-right:1px solid var(--line);background:rgba(8,8,10,.6);backdrop-filter:blur(10px);display:flex;flex-direction:column;align-items:center;padding:24px 0;gap:18px;z-index:3}
+  .ddetail .nav .logo{width:32px;height:32px;border-radius:50%;background:radial-gradient(circle at 35% 35%, #E5484D, #220404);box-shadow:0 0 24px rgba(229,72,77,.4)}
+  .ddetail .nav .ni{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--ink-mute);font-family:'JetBrains Mono',monospace;font-size:11px}
+  .ddetail .nav .ni.active{background:rgba(229,72,77,.12);color:#FFC4C0;box-shadow:inset 0 0 0 1px rgba(229,72,77,.35)}
+  .ddetail .nav .spacer{flex:1}
+  .ddetail .top{position:absolute;top:0;left:72px;right:0;padding:24px 40px;display:flex;justify-content:space-between;align-items:center;z-index:2;border-bottom:1px solid var(--line)}
+  .ddetail .top .crumb{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-mute);letter-spacing:.2em;text-transform:uppercase}
+  .ddetail .top .crumb .live{color:var(--red)}
+  .ddetail .top .pgtitle{font-family:'Instrument Serif',serif;font-size:36px;margin-top:4px;letter-spacing:-.01em}
+  .ddetail .top .quick{display:flex;gap:8px;align-items:center;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-mute);letter-spacing:.16em;text-transform:uppercase}
+  .ddetail .top .quick .pill{padding:6px 12px;border:1px solid var(--line-2);border-radius:999px;color:var(--ink)}
+  .ddetail .top .quick .pill.on{background:rgba(229,72,77,.12);border-color:rgba(229,72,77,.4);color:#FFC4C0}
+
+  .ddetail.is-pdom .stage{position:absolute;left:72px;top:108px;right:340px;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+  .ddetail.is-pdom .stage .session-line{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-mute);letter-spacing:.22em;text-transform:uppercase;margin-bottom:32px}
+  .ddetail.is-pdom .stage .session-line .live{color:var(--red)}
+  .ddetail.is-pdom .ring-outer{width:380px;height:380px;border-radius:50%;border:1px dashed rgba(229,72,77,.2);position:relative;display:flex;align-items:center;justify-content:center}
+  .ddetail.is-pdom .ring{width:340px;height:340px;border-radius:50%;border:1px solid rgba(236,231,221,.1);position:relative;display:flex;align-items:center;justify-content:center}
+  .ddetail.is-pdom .ring::after{
+    content:"";position:absolute;inset:0;border-radius:50%;
+    background:conic-gradient(from -90deg, #FF6B6F, var(--red) 200deg, rgba(229,72,77,.1) 200deg);
+    -webkit-mask:radial-gradient(circle, transparent 168px, #000 169px);
+    mask:radial-gradient(circle, transparent 168px, #000 169px);
+  }
+  .ddetail.is-pdom .ring .ttime{font-family:'Instrument Serif',serif;font-size:96px;letter-spacing:-.04em;line-height:1;position:relative;z-index:2}
+  .ddetail.is-pdom .ring .tlabel{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-mute);letter-spacing:.32em;text-transform:uppercase;margin-top:8px;text-align:center;position:relative;z-index:2}
+  .ddetail.is-pdom .pips{display:flex;gap:8px;margin-top:32px}
+  .ddetail.is-pdom .pips .p{width:32px;height:3px;background:var(--line-2);border-radius:2px}
+  .ddetail.is-pdom .pips .p.done{background:var(--red)}
+  .ddetail.is-pdom .pips .p.now{background:#FFC4C0;box-shadow:0 0 12px rgba(229,72,77,.5)}
+  .ddetail.is-pdom .ctrls{display:flex;align-items:center;gap:18px;margin-top:32px}
+  .ddetail.is-pdom .ctrls .b{width:48px;height:48px;border-radius:50%;border:1px solid var(--line-2);background:rgba(20,20,24,.5);color:var(--ink-dim);display:flex;align-items:center;justify-content:center;font-size:14px}
+  .ddetail.is-pdom .ctrls .play{width:72px;height:72px;background:var(--red);color:#fff;font-size:18px;box-shadow:0 0 40px rgba(229,72,77,.5);border:none}
+  .ddetail.is-pdom .ctrls .key{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-mute);letter-spacing:.18em;text-transform:uppercase;margin-top:6px;display:block;text-align:center}
+
+  .ddetail.is-pdom .panel{position:absolute;top:108px;right:0;bottom:0;width:340px;border-left:1px solid var(--line);background:rgba(14,14,17,.7);backdrop-filter:blur(14px);padding:32px 28px;overflow:hidden;z-index:1}
+  .ddetail.is-pdom .panel h4{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.22em;color:var(--ink-mute);text-transform:uppercase;margin-bottom:18px}
+  .ddetail.is-pdom .panel .group{padding-bottom:22px;margin-bottom:22px;border-bottom:1px solid var(--line)}
+  .ddetail.is-pdom .panel .group:last-child{border-bottom:none}
+  .ddetail.is-pdom .panel .ghead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+  .ddetail.is-pdom .panel .glab{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-mute);letter-spacing:.18em;text-transform:uppercase}
+  .ddetail.is-pdom .panel .gval{font-family:'Instrument Serif',serif;font-size:24px}
+  .ddetail.is-pdom .panel .gval em{font-style:italic;font-size:13px;color:var(--ink-mute);font-family:'JetBrains Mono',monospace;letter-spacing:.1em;margin-left:4px}
+  .ddetail.is-pdom .panel .presets{display:flex;gap:6px;flex-wrap:wrap}
+  .ddetail.is-pdom .panel .ch{padding:6px 11px;font-family:'JetBrains Mono',monospace;font-size:10px;border:1px solid var(--line-2);color:var(--ink-dim);border-radius:3px;letter-spacing:.08em}
+  .ddetail.is-pdom .panel .ch.on{background:rgba(229,72,77,.14);border-color:rgba(229,72,77,.4);color:#FFC4C0}
+  .ddetail.is-pdom .panel .label-input{margin-top:6px;width:100%;padding:10px 12px;background:rgba(8,8,10,.6);border:1px solid var(--line);font-size:12px;color:var(--ink);border-radius:3px}
+  .ddetail.is-pdom .panel .stat-line{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-mute);letter-spacing:.1em;padding:4px 0}
+  .ddetail.is-pdom .panel .stat-line .v{color:var(--ink)}
+
+  /* ===== Tasks detail ===== */
+  .tasks-page{position:absolute;inset:0;background:radial-gradient(800px 500px at 70% 0%, rgba(229,72,77,.04), transparent 60%), #08080A}
+  .ddetail.is-tasks .stage{position:absolute;left:72px;top:108px;right:0;bottom:0;padding:32px 40px;overflow:hidden}
+  .ddetail.is-tasks .filters{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+  .ddetail.is-tasks .filters .l{display:flex;gap:8px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase}
+  .ddetail.is-tasks .filters .l .ft{padding:7px 12px;border:1px solid var(--line);color:var(--ink-mute);border-radius:3px}
+  .ddetail.is-tasks .filters .l .ft.on{background:rgba(236,231,221,.06);color:var(--ink);border-color:var(--line-2)}
+  .ddetail.is-tasks .filters .r{display:flex;gap:10px;align-items:center;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-mute);letter-spacing:.14em;text-transform:uppercase}
+  .ddetail.is-tasks .filters .r .add{padding:9px 14px;background:var(--red);color:#fff;border-radius:3px;letter-spacing:.16em}
+  .ddetail.is-tasks .board{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;height:calc(100% - 70px)}
+  .ddetail.is-tasks .lane{background:rgba(14,14,17,.55);border:1px solid var(--line);border-radius:4px;display:flex;flex-direction:column;overflow:hidden}
+  .ddetail.is-tasks .lane.active{box-shadow:inset 0 0 0 1px rgba(229,72,77,.25)}
+  .ddetail.is-tasks .lhead{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+  .ddetail.is-tasks .lhead .lt{display:flex;align-items:center;gap:10px}
+  .ddetail.is-tasks .lhead .dot{width:6px;height:6px;border-radius:50%;background:var(--ink-dim)}
+  .ddetail.is-tasks .lhead .dot.r{background:var(--red)}
+  .ddetail.is-tasks .lhead .dot.g{background:#9DB596}
+  .ddetail.is-tasks .lhead .ln{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink)}
+  .ddetail.is-tasks .lhead .lc{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-mute);letter-spacing:.1em}
+  .ddetail.is-tasks .lbody{padding:14px;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+  .ddetail.is-tasks .card{background:#0E0E11;border:1px solid var(--line);border-radius:4px;padding:14px 16px}
+  .ddetail.is-tasks .card.priority{border-left:2px solid var(--red)}
+  .ddetail.is-tasks .card.lowprio{border-left:2px solid rgba(157,181,150,.5)}
+  .ddetail.is-tasks .card .ct{font-size:13px;color:var(--ink);margin-bottom:10px;line-height:1.4}
+  .ddetail.is-tasks .card .meta{display:flex;justify-content:space-between;align-items:center;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-mute);letter-spacing:.12em;text-transform:uppercase}
+  .ddetail.is-tasks .card .meta .tag{padding:3px 6px;border:1px solid var(--line);border-radius:2px}
+  .ddetail.is-tasks .card .meta .tag.work{color:#FFC4C0;border-color:rgba(229,72,77,.3)}
+  .ddetail.is-tasks .card .meta .tag.study{color:#C4D4FF;border-color:rgba(120,150,200,.25)}
+  .ddetail.is-tasks .card .meta .tag.life{color:#D9D2BE;border-color:var(--line-2)}
+  .ddetail.is-tasks .add-btn{padding:10px;border:1px dashed var(--line-2);border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-mute);text-align:center;letter-spacing:.16em;text-transform:uppercase}
+
+  /* ===== Mobile detail ===== */
+  .mobile-row{display:grid;grid-template-columns:repeat(4,1fr);gap:32px;margin-top:32px}
+  .phone{aspect-ratio:9/19;background:#0A0A0C;border:1px solid var(--line-2);border-radius:36px;position:relative;overflow:hidden;padding:0;box-shadow:0 24px 80px rgba(0,0,0,.5), inset 0 0 0 8px #06060A}
+  .phone .notch{position:absolute;top:14px;left:50%;transform:translateX(-50%);width:90px;height:24px;background:#06060A;border-radius:999px;z-index:5}
+  .phone .stat{position:absolute;top:18px;left:24px;right:24px;display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:9px;color:#fff;letter-spacing:.1em;z-index:6}
+  .phone .pcontent{position:absolute;inset:48px 16px 80px 16px;overflow:hidden}
+  .phone .ptab{position:absolute;left:16px;right:16px;bottom:16px;height:56px;background:rgba(20,20,24,.85);backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:18px;display:flex;justify-content:space-around;align-items:center}
+  .phone .ptab .ti{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-mute);letter-spacing:.1em;text-transform:uppercase;display:flex;flex-direction:column;align-items:center;gap:4px}
+  .phone .ptab .ti.on{color:#FFC4C0}
+  .phone .ptab .ti .ic{width:18px;height:18px;border:1px solid currentColor;border-radius:5px}
+  .phone-cap{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-mute);letter-spacing:.16em;text-transform:uppercase;margin-top:12px;text-align:center}
+
+  /* phone — hub */
+  .ph1 .pcontent{padding:8px 6px}
+  .ph1 .greet{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-mute);letter-spacing:.18em;text-transform:uppercase}
+  .ph1 .pgreet{font-family:'Instrument Serif',serif;font-size:28px;line-height:1;margin-top:6px;margin-bottom:18px}
+  .ph1 .pgreet em{font-style:italic;color:var(--red)}
+  .ph1 .focus{background:rgba(20,20,24,.6);border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:12px}
+  .ph1 .focus .l{font-family:'JetBrains Mono',monospace;font-size:8.5px;color:var(--ink-mute);letter-spacing:.2em;text-transform:uppercase}
+  .ph1 .focus .t{font-family:'Instrument Serif',serif;font-size:34px;letter-spacing:-.02em;color:var(--ink);line-height:1;margin-top:6px}
+  .ph1 .focus .b{height:3px;background:var(--line);border-radius:2px;margin-top:10px;overflow:hidden;position:relative}
+  .ph1 .focus .b::after{content:"";position:absolute;left:0;top:0;bottom:0;width:62%;background:var(--red)}
+  .ph1 .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .ph1 .gc{background:rgba(14,14,17,.6);border:1px solid var(--line);border-radius:8px;padding:10px;min-height:80px}
+  .ph1 .gc .gl{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--ink-mute);letter-spacing:.18em;text-transform:uppercase;margin-bottom:4px}
+  .ph1 .gc .gv{font-family:'Instrument Serif',serif;font-size:22px;line-height:1;color:var(--ink)}
+  .ph1 .gc .gv em{color:var(--red);font-style:italic}
+  .ph1 .gc .gd{font-size:9.5px;color:var(--ink-dim);margin-top:4px}
+
+  /* phone — pomodoro */
+  .ph2 .pcontent{padding:0 8px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .ph2 .pring{width:200px;height:200px;border-radius:50%;border:1px solid var(--line-2);position:relative;display:flex;align-items:center;justify-content:center;margin-bottom:18px}
+  .ph2 .pring::after{
+    content:"";position:absolute;inset:0;border-radius:50%;
+    background:conic-gradient(from -90deg, #FF6B6F, var(--red) 200deg, rgba(229,72,77,.08) 200deg);
+    -webkit-mask:radial-gradient(circle, transparent 96px, #000 97px);
+    mask:radial-gradient(circle, transparent 96px, #000 97px);
+  }
+  .ph2 .pring .pt{font-family:'Instrument Serif',serif;font-size:48px;letter-spacing:-.03em;line-height:1;position:relative;z-index:2}
+  .ph2 .plab{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-mute);letter-spacing:.32em;text-transform:uppercase;margin-bottom:14px}
+  .ph2 .pctrls{display:flex;gap:14px;align-items:center;margin-bottom:18px}
+  .ph2 .pctrls .b{width:36px;height:36px;border-radius:50%;border:1px solid var(--line-2);color:var(--ink-dim);display:flex;align-items:center;justify-content:center;font-size:11px}
+  .ph2 .pctrls .play{width:54px;height:54px;background:var(--red);color:#fff;font-size:14px;box-shadow:0 0 26px rgba(229,72,77,.5);border:none}
+  .ph2 .ppres{display:flex;gap:5px;flex-wrap:wrap;justify-content:center}
+  .ph2 .ppres .pp{padding:5px 9px;border:1px solid var(--line-2);font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-dim);border-radius:2px}
+  .ph2 .ppres .pp.on{background:rgba(229,72,77,.12);border-color:rgba(229,72,77,.4);color:#FFC4C0}
+
+  /* phone — tasks */
+  .ph3 .pcontent{padding:8px 6px}
+  .ph3 .pttl{font-family:'Instrument Serif',serif;font-size:24px;margin-bottom:12px}
+  .ph3 .seg{display:flex;background:rgba(14,14,17,.6);border:1px solid var(--line);border-radius:6px;padding:3px;margin-bottom:14px}
+  .ph3 .seg .si{flex:1;text-align:center;padding:6px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-mute);letter-spacing:.16em;text-transform:uppercase;border-radius:4px}
+  .ph3 .seg .si.on{background:rgba(229,72,77,.12);color:#FFC4C0}
+  .ph3 .tsk{background:rgba(14,14,17,.5);border:1px solid var(--line);border-left:2px solid var(--red);border-radius:4px;padding:11px;margin-bottom:8px}
+  .ph3 .tsk.lp{border-left-color:rgba(157,181,150,.4)}
+  .ph3 .tsk .tx{font-size:12px;line-height:1.3;color:var(--ink);margin-bottom:6px}
+  .ph3 .tsk .tm{font-family:'JetBrains Mono',monospace;font-size:8.5px;color:var(--ink-mute);letter-spacing:.16em;text-transform:uppercase}
+  .ph3 .tsk .tm em{color:#FFC4C0;font-style:normal;margin-right:8px}
+
+  /* phone — accomplishments */
+  .ph4 .pcontent{padding:8px 6px}
+  .ph4 .pttl{font-family:'Instrument Serif',serif;font-size:24px;margin-bottom:4px}
+  .ph4 .psub{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-mute);letter-spacing:.16em;text-transform:uppercase;margin-bottom:14px}
+  .ph4 .acc{background:rgba(14,14,17,.5);border:1px solid var(--line);border-radius:6px;padding:12px;margin-bottom:8px;display:flex;gap:10px}
+  .ph4 .acc .th{width:36px;height:48px;border:1px solid var(--line-2);border-radius:3px;background:linear-gradient(180deg, rgba(229,72,77,.12), rgba(229,72,77,.02));position:relative;flex-shrink:0}
+  .ph4 .acc .th::after{content:"PDF";position:absolute;bottom:4px;left:0;right:0;text-align:center;font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--ink-mute);letter-spacing:.16em}
+  .ph4 .acc .ai{flex:1;min-width:0}
+  .ph4 .acc .at{font-size:12px;color:var(--ink);margin-bottom:3px;line-height:1.3}
+  .ph4 .acc .am{font-family:'JetBrains Mono',monospace;font-size:8.5px;color:var(--ink-mute);letter-spacing:.14em;text-transform:uppercase}
+
+  /* ===== Accomplishments detail ===== */
+  .acc-page{position:absolute;inset:0;background:radial-gradient(900px 500px at 80% 10%, rgba(229,72,77,.04), transparent 60%), #08080A}
+  .ddetail.is-acc .stage{position:absolute;left:72px;top:108px;right:0;bottom:0;padding:32px 40px;display:grid;grid-template-columns:1fr 420px;gap:32px;overflow:hidden}
+  .ddetail.is-acc .feed{display:flex;flex-direction:column;gap:14px;overflow:hidden}
+  .ddetail.is-acc .feed-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .ddetail.is-acc .feed-head .ft{display:flex;gap:8px}
+  .ddetail.is-acc .feed-head .ft .f{padding:7px 12px;border:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-mute);letter-spacing:.16em;text-transform:uppercase;border-radius:3px}
+  .ddetail.is-acc .feed-head .ft .f.on{background:rgba(236,231,221,.06);color:var(--ink);border-color:var(--line-2)}
+  .ddetail.is-acc .feed-head .add{padding:9px 14px;background:var(--red);color:#fff;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;border-radius:3px}
+  .ddetail.is-acc .day-marker{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-mute);letter-spacing:.22em;text-transform:uppercase;padding:6px 0;display:flex;justify-content:space-between;border-bottom:1px solid var(--line);margin-top:6px}
+  .ddetail.is-acc .day-marker em{color:var(--ink);font-style:normal}
+  .ddetail.is-acc .entry{background:rgba(14,14,17,.5);border:1px solid var(--line);border-radius:4px;padding:18px 20px;display:grid;grid-template-columns:60px 1fr auto;gap:18px;align-items:start;cursor:pointer}
+  .ddetail.is-acc .entry.active{border-color:rgba(229,72,77,.4);background:rgba(20,16,18,.7);box-shadow:inset 0 0 0 1px rgba(229,72,77,.15)}
+  .ddetail.is-acc .entry .stamp{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-mute);letter-spacing:.14em;line-height:1.4}
+  .ddetail.is-acc .entry .stamp .h{color:var(--ink);font-size:14px;letter-spacing:0;font-family:'Instrument Serif',serif;font-style:italic}
+  .ddetail.is-acc .entry .body .t{font-size:14px;color:var(--ink);margin-bottom:6px;line-height:1.4}
+  .ddetail.is-acc .entry .body .n{font-size:12px;color:var(--ink-dim);margin-bottom:10px}
+  .ddetail.is-acc .entry .body .meta{display:flex;gap:10px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-mute);letter-spacing:.16em;text-transform:uppercase}
+  .ddetail.is-acc .entry .body .meta .tag{padding:3px 7px;border:1px solid var(--line-2);border-radius:2px;color:var(--ink-dim)}
+  .ddetail.is-acc .entry .body .meta .tag.work{color:#FFC4C0;border-color:rgba(229,72,77,.3)}
+  .ddetail.is-acc .entry .att{display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--line);border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--ink-dim);letter-spacing:.14em;text-transform:uppercase}
+  .ddetail.is-acc .entry .att .pdfdot{width:6px;height:6px;background:var(--red);border-radius:50%}
+
+  /* preview pane */
+  .ddetail.is-acc .preview{background:#0A0A0C;border:1px solid var(--line);border-radius:4px;display:flex;flex-direction:column;overflow:hidden}
+  .ddetail.is-acc .pvhead{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+  .ddetail.is-acc .pvhead .pl{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-mute);letter-spacing:.18em;text-transform:uppercase}
+  .ddetail.is-acc .pvhead .pr{display:flex;gap:8px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-mute);letter-spacing:.14em}
+  .ddetail.is-acc .pvhead .pr .b{padding:5px 9px;border:1px solid var(--line);border-radius:2px}
+  .ddetail.is-acc .pvbody{flex:1;background:#1A1814;display:flex;align-items:center;justify-content:center;padding:24px;position:relative;overflow:hidden}
+  .ddetail.is-acc .pdfpage{width:78%;aspect-ratio:1/1.41;background:#F4EFE2;border-radius:2px;box-shadow:0 24px 60px rgba(0,0,0,.6), 0 8px 20px rgba(0,0,0,.4);padding:28px 24px;display:flex;flex-direction:column;gap:6px}
+  .ddetail.is-acc .pdfpage .pl1{height:9px;background:#2A241B;width:60%;border-radius:1px}
+  .ddetail.is-acc .pdfpage .pl2{height:5px;background:#5C5142;width:40%;border-radius:1px;margin-bottom:10px}
+  .ddetail.is-acc .pdfpage .pl3{height:3px;background:#7A6F5C;width:100%;border-radius:1px;opacity:.4}
+  .ddetail.is-acc .pdfpage .pl3.s{width:90%}
+  .ddetail.is-acc .pdfpage .pl3.t{width:78%}
+  .ddetail.is-acc .pdfpage .pl3.u{width:65%;margin-bottom:10px}
+  .ddetail.is-acc .pdfpage .img{height:120px;background:linear-gradient(135deg, #C8B999, #E5DFCB);border-radius:1px;margin:8px 0}
+  .ddetail.is-acc .pvfoot{padding:12px 16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--ink-mute);letter-spacing:.14em;text-transform:uppercase}
+  .ddetail.is-acc .pvfoot .open{color:#FFC4C0}
+
+  /* ===== Theme/Background panel ===== */
+  .theme-page{position:absolute;inset:0;background:radial-gradient(900px 500px at 30% 50%, rgba(229,72,77,.05), transparent 60%), #08080A}
+  .ddetail.is-theme .stage{position:absolute;left:72px;top:108px;right:0;bottom:0;padding:48px 64px;display:grid;grid-template-columns:1fr 360px;gap:48px;overflow:hidden}
+  .ddetail.is-theme .live-preview{position:relative;background:linear-gradient(180deg, #0E0E11, #060608);border:1px solid var(--line);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+  .ddetail.is-theme .live-preview::after{
+    content:"";position:absolute;inset:0;
+    background-image:
+      radial-gradient(1px 1px at 12% 22%,rgba(255,255,255,.5) 50%,transparent 51%),
+      radial-gradient(1px 1px at 38% 12%,rgba(255,255,255,.4) 50%,transparent 51%),
+      radial-gradient(1.5px 1.5px at 78% 18%,rgba(255,255,255,.5) 50%,transparent 51%),
+      radial-gradient(1px 1px at 92% 64%,rgba(255,255,255,.35) 50%,transparent 51%),
+      radial-gradient(1px 1px at 14% 78%,rgba(255,255,255,.3) 50%,transparent 51%),
+      radial-gradient(1.5px 1.5px at 64% 82%,rgba(229,72,77,.5) 50%,transparent 51%);
+  }
+  .ddetail.is-theme .lpttl{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-mute);letter-spacing:.22em;text-transform:uppercase;position:absolute;top:18px;left:24px;z-index:2}
+  .ddetail.is-theme .lpcenter{font-family:'Instrument Serif',serif;font-size:64px;color:var(--ink);letter-spacing:-.02em;position:relative;z-index:2;text-align:center}
+  .ddetail.is-theme .lpcenter em{font-style:italic;color:var(--red)}
+  .ddetail.is-theme .lpsub{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-mute);letter-spacing:.22em;text-transform:uppercase;position:absolute;bottom:18px;left:24px;right:24px;display:flex;justify-content:space-between;z-index:2}
+  .ddetail.is-theme .controls{display:flex;flex-direction:column;gap:24px;overflow:auto}
+  .ddetail.is-theme .ttitle{font-family:'Instrument Serif',serif;font-size:32px;letter-spacing:-.01em;line-height:1}
+  .ddetail.is-theme .tsub{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-mute);letter-spacing:.18em;text-transform:uppercase;margin-top:6px}
+  .ddetail.is-theme .grp .gh{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-mute);letter-spacing:.22em;text-transform:uppercase;margin-bottom:12px;display:flex;justify-content:space-between}
+  .ddetail.is-theme .duo{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .ddetail.is-theme .opt{padding:14px;border:1px solid var(--line);border-radius:4px;display:flex;flex-direction:column;gap:8px;cursor:pointer;background:rgba(14,14,17,.4)}
+  .ddetail.is-theme .opt.on{border-color:rgba(229,72,77,.4);background:rgba(20,16,18,.6)}
+  .ddetail.is-theme .opt .swatch{height:48px;border-radius:2px}
+  .ddetail.is-theme .opt .nm{font-size:12px;color:var(--ink)}
+  .ddetail.is-theme .opt .ds{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-mute);letter-spacing:.14em;text-transform:uppercase}
+  .ddetail.is-theme .opt.on .nm{color:#FFC4C0}
+  .ddetail.is-theme .bg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .ddetail.is-theme .bg-opt{aspect-ratio:1.2/1;border:1px solid var(--line);border-radius:4px;position:relative;overflow:hidden;cursor:pointer}
+  .ddetail.is-theme .bg-opt.on{border-color:rgba(229,72,77,.5);box-shadow:0 0 0 1px rgba(229,72,77,.2)}
+  .ddetail.is-theme .bg-opt .lbl{position:absolute;bottom:6px;left:8px;right:8px;font-family:'JetBrains Mono',monospace;font-size:8.5px;color:#fff;letter-spacing:.14em;text-transform:uppercase;display:flex;justify-content:space-between;z-index:2}
+  .ddetail.is-theme .bg-opt.b1{background:radial-gradient(circle at 50% 50%, #1A0808, #050507)}
+  .ddetail.is-theme .bg-opt.b1::after{content:"";position:absolute;inset:0;background-image:radial-gradient(1px 1px at 30% 30%,#fff 50%,transparent 51%),radial-gradient(1px 1px at 70% 60%,#fff 50%,transparent 51%),radial-gradient(1px 1px at 50% 80%,rgba(229,72,77,.7) 50%,transparent 51%)}
+  .ddetail.is-theme .bg-opt.b2{background:linear-gradient(180deg,#0E0F12, #050608);}
+  .ddetail.is-theme .bg-opt.b2::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 50%, rgba(120,140,180,.18), transparent 50%)}
+  .ddetail.is-theme .bg-opt.b3{background:#0A0A0C}
+  .ddetail.is-theme .bg-opt.b3::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px),linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);background-size:14px 14px}
+  .ddetail.is-theme .bg-opt.b4{background:linear-gradient(180deg,#241410,#0A0708)}
+  .ddetail.is-theme .bg-opt.b5{background:#F2EADA}
+  .ddetail.is-theme .bg-opt.b5 .lbl{color:#2A241B}
+  .ddetail.is-theme .bg-opt.b6{background:linear-gradient(135deg,#1A1612,#0E0B08)}
+  .ddetail.is-theme .row-toggle{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-top:1px solid var(--line);font-size:13px;color:var(--ink)}
+  .ddetail.is-theme .row-toggle .lab{display:flex;flex-direction:column;gap:3px}
+  .ddetail.is-theme .row-toggle .lab .ll{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-mute);letter-spacing:.16em;text-transform:uppercase}
+  .ddetail.is-theme .toggle{width:36px;height:20px;background:var(--line-2);border-radius:999px;position:relative}
+  .ddetail.is-theme .toggle.on{background:var(--red)}
+  .ddetail.is-theme .toggle::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:.2s}
+  .ddetail.is-theme .toggle.on::after{left:18px}
+
+  /* ===== Tan-mode contrast example ===== */
+  .tan-row{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:32px}
+  .tan-card{aspect-ratio:16/10;border-radius:8px;overflow:hidden;position:relative;border:1px solid var(--line)}
+  .tan-card.dark{background:radial-gradient(800px 400px at 50% 50%, rgba(229,72,77,.06), transparent 60%), #0A0A0C}
+  .tan-card.tan{background:linear-gradient(180deg, #F2EADA, #E8DEC6)}
+  .tan-card .label{position:absolute;top:14px;left:18px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase}
+  .tan-card.dark .label{color:var(--ink-mute)}
+  .tan-card.tan .label{color:#7A6F5C}
+  .tan-card .center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+  .tan-card.dark .ttime{font-family:'Instrument Serif',serif;font-size:80px;color:var(--ink);letter-spacing:-.03em}
+  .tan-card.tan .ttime{font-family:'Instrument Serif',serif;font-size:80px;color:#2A241B;letter-spacing:-.03em}
+  .tan-card.tan .ttime em{font-style:italic;color:var(--red)}
+  .tan-card .csmall{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.32em;text-transform:uppercase}
+  .tan-card.dark .csmall{color:var(--ink-mute)}
+  .tan-card.tan .csmall{color:#5C5142}
+  .tan-card .cb{display:flex;gap:10px;margin-top:8px}
+  .tan-card .b{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px}
+  .tan-card.dark .b{border:1px solid var(--line-2);color:var(--ink-dim)}
+  .tan-card.dark .b.play{background:var(--red);border:none;color:#fff;width:48px;height:48px}
+  .tan-card.tan .b{border:1px solid rgba(42,36,27,.18);color:#5C5142}
+  .tan-card.tan .b.play{background:#2A241B;border:none;color:#F4EFE2;width:48px;height:48px}
+
+  /* ===== System / spec ===== */
+  .system-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:32px;margin-top:32px}
+  .spec{padding:28px;background:var(--bg-2);border:1px solid var(--line);border-radius:6px}
+  .spec .st{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--red);letter-spacing:.22em;text-transform:uppercase;margin-bottom:8px}
+  .spec h4{font-family:'Instrument Serif',serif;font-size:24px;margin-bottom:16px}
+  .spec ul{list-style:none}
+  .spec li{padding:8px 0;border-top:1px solid var(--line);display:flex;justify-content:space-between;font-size:13px;color:var(--ink-dim);gap:18px}
+  .spec li:first-child{border-top:none}
+  .spec li .k{color:var(--ink)}
+  .spec li .v{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;color:var(--ink-mute);text-align:right}
+
+  /* type stack */
+  .type-stack{padding:32px;background:var(--bg-2);border:1px solid var(--line);border-radius:6px;margin-top:32px}
+  .type-row{display:grid;grid-template-columns:120px 1fr 200px;gap:24px;align-items:baseline;padding:18px 0;border-top:1px solid var(--line)}
+  .type-row:first-of-type{border-top:none}
+  .type-row .lab{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-mute);letter-spacing:.18em;text-transform:uppercase}
+  .type-row .spec{padding:0;background:none;border:none;border-radius:0;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-mute);letter-spacing:.06em;text-align:right}
+  .type-row .demo-display{font-family:'Instrument Serif',serif;font-size:64px;letter-spacing:-.01em;line-height:1}
+  .type-row .demo-display em{font-style:italic;color:var(--red)}
+  .type-row .demo-h1{font-family:'Instrument Serif',serif;font-size:36px;line-height:1;letter-spacing:-.01em}
+  .type-row .demo-h2{font-family:'Inter',sans-serif;font-weight:500;font-size:22px}
+  .type-row .demo-body{font-family:'Inter',sans-serif;font-size:15px;color:var(--ink-dim);line-height:1.6}
+  .type-row .demo-mono{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.22em;color:var(--ink-mute);text-transform:uppercase}
+
+  /* nav for sections */
+  .toc{position:sticky;top:0;background:rgba(8,8,10,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);z-index:50;padding:14px 56px;display:flex;justify-content:space-between;align-items:center;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;color:var(--ink-mute);text-transform:uppercase}
+  .toc .l{display:flex;gap:24px;align-items:center}
+  .toc .logo{width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 30% 30%, #E5484D, #220404)}
+  .toc .links{display:flex;gap:24px}
+  .toc .links a{color:var(--ink-mute);text-decoration:none}
+  .toc .links a:hover{color:var(--ink)}
+
+  /* helpers */
+  .stack-32 > * + *{margin-top:32px}
+  .stack-16 > * + *{margin-top:16px}
+
+  /* tablet adjustment */
+  @media (max-width:900px){
+    .doc{padding:48px 24px}
+    .cover{padding:40px 24px}
+    .cover-title h1{font-size:60px}
+    .section-head{grid-template-columns:1fr;gap:18px}
+    .section-head h2{font-size:36px}
+    .dir-head{grid-template-columns:1fr}
+    .dir-num{font-size:80px}
+    .pillars{grid-template-columns:1fr}
+    .pillar{border-right:none !important}
+    .compare,.diag{grid-template-columns:1fr}
+    .system-grid,.tan-row,.mock-row{grid-template-columns:1fr}
+    .mobile-row{grid-template-columns:repeat(2,1fr)}
+    .cover-foot{grid-template-columns:repeat(2,1fr)}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ TOC ============ -->
+<div class="toc">
+  <div class="l"><span class="logo"></span><span>Roberto's Aid · Redesign</span></div>
+  <div class="links">
+    <a href="#diagnosis">Diagnosis</a>
+    <a href="#directions">Directions</a>
+    <a href="#winner">Recommendation</a>
+    <a href="#detail">Detail</a>
+    <a href="#system">System</a>
+  </div>
+</div>
+
+<!-- ============ COVER ============ -->
+<div class="cover">
+  <div class="cover-meta">
+    <div><span class="dot"></span>UI/UX REDESIGN EXPLORATION · v0.1</div>
+    <div>04 · 28 · 2026</div>
+  </div>
+  <div class="cover-title">
+    <div class="eyebrow">Personal command cabin</div>
+    <h1>Roberto's <em>Aid</em>,<br>refit for orbit.</h1>
+    <p class="sub">A design-only exploration: three directions for unifying the seven modules, fixing tan-mode readability and mobile, and resolving the trapped-PDF problem in Accomplishments. Then a recommendation, with detailed concepts for Pomodoro, Tasks, mobile, Accomplishments, and the appearance panel.</p>
+  </div>
+  <div class="cover-foot">
+    <div><div class="k">Scope</div><div class="v">Visual + UX, no code yet</div></div>
+    <div><div class="k">Modules</div><div class="v">Hub · Pomodoro · Timer · Tasks · Calendar · Habits · Accomplishments</div></div>
+    <div><div class="k">Themes</div><div class="v">Dark Space · Light Tan</div></div>
+    <div><div class="k">Mood</div><div class="v">Premium · cinematic · calm</div></div>
+  </div>
+</div>
+
+<div class="doc">
+
+<!-- ============ DIAGNOSIS ============ -->
+<section id="diagnosis">
+  <div class="section-head">
+    <div class="num">01 / DIAGNOSIS</div>
+    <div>
+      <h2>What's not&nbsp;working today.</h2>
+      <p class="lede">Before proposing anything, here's how I'm reading the current state of the app — the patterns that hold up, and the ones that need to change. This is the brief I'm designing against.</p>
+    </div>
+  </div>
+
+  <div class="diag">
+    <div class="cell">
+      <div class="tag">Inconsistency</div>
+      <h3>Each module speaks a different dialect</h3>
+      <p>Pomodoro panel feels like a control room; Tasks board is empty cards; Habits is data-dense rows; Accomplishments is one big black box. The vocabulary should be shared — type scale, panel grammar, button language, spacing rhythm.</p>
+    </div>
+    <div class="cell">
+      <div class="tag">Hierarchy</div>
+      <h3>Everything sits at the same value</h3>
+      <p>Most surfaces are #0F0F12-ish on #0A0A0C-ish. Cards melt into the background. The eye has nowhere to land. We need at least three depth levels and confident contrast between them.</p>
+    </div>
+    <div class="cell">
+      <div class="tag">Tan mode</div>
+      <h3>Reads as bleached, not warm</h3>
+      <p>Light surfaces are too uniformly tan with low-contrast text. The mode should be a deliberate "daylight" companion to dark — paper-like, with proper ink, not a tinted dark theme.</p>
+    </div>
+    <div class="cell">
+      <div class="tag">Mobile</div>
+      <h3>Desktop layouts squeezed onto a phone</h3>
+      <p>Three-column boards, side panels, and sidebars don't survive 375 px. Mobile needs its own grammar — a bottom tab bar, a single-column rhythm, and one clear primary action per screen.</p>
+    </div>
+    <div class="cell">
+      <div class="tag">Tasks</div>
+      <h3>Three empty caverns</h3>
+      <p>The Burner / Active / Completed lanes give equal real-estate to states with very different volumes. Active deserves the most weight. Cards need a card system, not column-and-pray.</p>
+    </div>
+    <div class="cell">
+      <div class="tag">Pomodoro / Timer</div>
+      <h3>Controls float, settings sprawl</h3>
+      <p>Play / reset / skip drift below the dial without grouping. The right rail mixes session config, presets, labels and stats with no hierarchy. Group them, scale them, give the dial more room.</p>
+    </div>
+    <div class="cell">
+      <div class="tag">Accomplishments</div>
+      <h3>The PDF preview is trapped</h3>
+      <p>A document inside a card inside a sidebar inside a page is too many containers. Files want a dedicated reading surface — either a split view or a focus mode that lets the document breathe.</p>
+    </div>
+    <div class="cell">
+      <div class="tag">Theme panel</div>
+      <h3>It's a list, not a preview</h3>
+      <p>Background, filter, motion are picked blind. The panel should let you see the change before you commit — a live canvas you're previewing into, not a stack of radio buttons.</p>
+    </div>
+    <div class="cell">
+      <div class="tag">Voice</div>
+      <h3>Space metaphor under-used</h3>
+      <p>The cover is gorgeous. Inside, the metaphor goes mute. The orbit / cabin / log language can carry through to copy, micro-states, empty states, and labels without becoming kitsch.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DIRECTIONS ============ -->
+<section id="directions">
+  <div class="section-head">
+    <div class="num">02 / DIRECTIONS</div>
+    <div>
+      <h2>Three ways forward.</h2>
+      <p class="lede">Each direction commits to a different center of gravity. They share the eight aspects you asked about — concept, sidebar, layout, timer, tasks, mobile, themes, and what changes — but resolve them in distinctly different vocabularies.</p>
+    </div>
+  </div>
+
+  <!-- DIRECTION 1 -->
+  <div class="direction d1">
+    <div class="dir-head">
+      <div class="dir-num">01</div>
+      <div class="dir-name">
+        <div class="label">Direction · A</div>
+        <h3>Obsidian <em>Observatory</em></h3>
+        <p>Cinematic and quiet. The whole app feels like a single observation deck looking out into space. One ambient backdrop persists across modules; UI floats over it as glass and matte panels with strong typographic hierarchy. A single restrained red accent does all the highlighting work.</p>
+      </div>
+    </div>
+
+    <div class="mock-row">
+      <div>
+        <div class="mock-cap">Pomodoro · Direction A</div>
+        <div class="mock">
+          <div class="nav">
+            <div class="logo"></div>
+            <div class="ni active">●</div>
+            <div class="ni">○</div>
+            <div class="ni">≡</div>
+            <div class="ni">◐</div>
+            <div class="ni">▣</div>
+            <div class="ni">◷</div>
+          </div>
+          <div class="stage">
+            <div class="crumb">CABIN / WORK CYCLE / 03</div>
+            <div class="pgtitle">Pomodoro</div>
+            <div class="ring-wrap">
+              <div class="ring"><div class="time">40:00</div></div>
+              <div class="ctrls">
+                <div class="b">↺</div>
+                <button class="b play">▶</button>
+                <div class="b">⏭</div>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <h4>Session · 03 of 06</h4>
+            <div class="pgrp">
+              <div class="lab">Focus</div>
+              <div class="row"><span class="chip">25m</span><span class="chip on">40m</span><span class="chip">60m</span><span class="chip">90m</span></div>
+            </div>
+            <div class="pgrp">
+              <div class="lab">Break</div>
+              <div class="row"><span class="chip on">5m</span><span class="chip">10m</span><span class="chip">15m</span></div>
+            </div>
+            <div class="pgrp">
+              <div class="lab">Label</div>
+              <div class="row"><span class="chip">Physics homework</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="mock-cap">Eight pillars · Direction A</div>
+        <div class="pillars">
+          <div class="pillar"><div class="pl">Concept</div><div class="pn">Glass on space</div><div class="pd">One persistent backdrop, panels float as smoked-glass surfaces. Less chrome, more atmosphere.</div></div>
+          <div class="pillar"><div class="pl">Sidebar</div><div class="pn">64-px icon rail</div><div class="pd">Tooltips on hover, glowing red dot for active. Logo at top doubles as the hub link.</div></div>
+          <div class="pillar"><div class="pl">Layout</div><div class="pn">Stage + utility rail</div><div class="pd">Each page has one wide stage and one 320-px utility rail. Predictable across modules.</div></div>
+          <div class="pillar"><div class="pl">Timer</div><div class="pn">Single hero dial</div><div class="pd">Ring shows progress; numerals are display-serif. Controls dock just below, never floating.</div></div>
+          <div class="pillar"><div class="pl">Tasks</div><div class="pn">Weighted lanes</div><div class="pd">Active gets 1.4×; Burner & Completed share remaining width. Card system with priority slabs.</div></div>
+          <div class="pillar"><div class="pl">Mobile</div><div class="pn">Bottom tab + stage</div><div class="pd">Sidebar collapses to 5-tab bottom bar. Each module gets its own scroll-friendly column layout.</div></div>
+          <div class="pillar"><div class="pl">Themes</div><div class="pn">Dark · paper</div><div class="pd">Tan mode reads as warm paper with deep ink, not tinted dark. Live preview replaces the radio list.</div></div>
+          <div class="pillar"><div class="pl">Change</div><div class="pn">Hierarchy + breathing room</div><div class="pd">Same backdrop, but cards lift two values brighter. Type goes serif-display + Inter + mono.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DIRECTION 2 -->
+  <div class="direction d2">
+    <div class="dir-head">
+      <div class="dir-num">02</div>
+      <div class="dir-name">
+        <div class="label">Direction · B</div>
+        <h3>Voyager <em>Log</em></h3>
+        <p>Editorial and structured. The interface borrows from a printed mission log: precise rules, mono labels, dense type, framed corners. Less ambient backdrop, more surface and grid. Productivity that feels like documentation. Tan mode shines here.</p>
+      </div>
+    </div>
+
+    <div class="mock-row">
+      <div>
+        <div class="mock-cap">Tasks · Direction B</div>
+        <div class="mock">
+          <div class="frame corners">
+            <div class="topbar">
+              <div class="l"><span>★ ROBERTO'S AID</span><span>·</span><span>LOG · 04.28.26</span><span>·</span><span>0723 LOCAL</span></div>
+              <div class="r">● ACTIVE CYCLE</div>
+            </div>
+            <div class="tabs">
+              <div class="tab">Cabin</div>
+              <div class="tab">Pomodoro</div>
+              <div class="tab on">Tasks</div>
+              <div class="tab">Calendar</div>
+              <div class="tab">Habits</div>
+              <div class="tab">Log</div>
+            </div>
+            <div class="body">
+              <div class="col">
+                <h5>Burner</h5>
+                <div class="csub">QUEUED · 04</div>
+                <div class="task"><div class="t1">Review Q2 budget draft</div><div class="t2">WORK · DUE FRI</div></div>
+                <div class="task"><div class="t1">Read Chapter 3 — Calculus</div><div class="t2">STUDY · 45M</div></div>
+                <div class="task"><div class="t1">Reply to Mom</div><div class="t2">LIFE</div></div>
+                <div class="task"><div class="t1">Renew car insurance</div><div class="t2">ADMIN · DUE 05.04</div></div>
+              </div>
+              <div class="col">
+                <h5>Active</h5>
+                <div class="csub">IN PROGRESS · 02</div>
+                <div class="task"><div class="t1">Finish physics homework</div><div class="t2">STUDY · 1H 12M LOGGED</div></div>
+                <div class="task"><div class="t1">Draft project proposal</div><div class="t2">WORK · 25M LOGGED</div></div>
+              </div>
+              <div class="col">
+                <h5>Completed</h5>
+                <div class="csub">TODAY · 03</div>
+                <div class="task"><div class="t1">Morning run · 5 km</div><div class="t2">06:42 · 32M</div></div>
+                <div class="task"><div class="t1">Stand-up notes</div><div class="t2">07:10 · 18M</div></div>
+                <div class="task"><div class="t1">Inbox to zero</div><div class="t2">07:28 · 22M</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="mock-cap">Eight pillars · Direction B</div>
+        <div class="pillars">
+          <div class="pillar"><div class="pl">Concept</div><div class="pn">Mission log layout</div><div class="pd">Outer frame with corner brackets, mono metadata strips, content inside a precise grid.</div></div>
+          <div class="pillar"><div class="pl">Sidebar</div><div class="pn">Top-bar tabs</div><div class="pd">Drops the icon rail entirely; horizontal tabs with mono labels. Cleaner on wide screens.</div></div>
+          <div class="pillar"><div class="pl">Layout</div><div class="pn">Frame + grid</div><div class="pd">Every page is bracketed and gridded. Content has weight; air between sections is generous.</div></div>
+          <div class="pillar"><div class="pl">Timer</div><div class="pn">Numerals over dial</div><div class="pd">Bigger, blockier display numerals; thin progress bar instead of ring. Reads at a glance.</div></div>
+          <div class="pillar"><div class="pl">Tasks</div><div class="pn">Dense list, not cards</div><div class="pd">Tasks become rows in a table-feel grid. More items visible, scannable, sortable.</div></div>
+          <div class="pillar"><div class="pl">Mobile</div><div class="pn">Tab bar + tighter rows</div><div class="pd">List-first views collapse beautifully; the frame turns into a single ruled column.</div></div>
+          <div class="pillar"><div class="pl">Themes</div><div class="pn">Tan as primary</div><div class="pd">Warm cream background with deep ink — feels like printed log paper. Dark stays for night.</div></div>
+          <div class="pillar"><div class="pl">Change</div><div class="pn">Less art, more grammar</div><div class="pd">The space mood retreats; the structure carries the personality. Best for power users.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DIRECTION 3 -->
+  <div class="direction d3">
+    <div class="dir-head">
+      <div class="dir-num">03</div>
+      <div class="dir-name">
+        <div class="label">Direction · C</div>
+        <h3>Lunar <em>Atlas</em></h3>
+        <p>Warm, human, magazine-like. Lighter on the space tropes; heavier on editorial layout and hand-feel. Big serifs, plenty of cream space, soft warm shadows, and module pages that read like cover stories. Tan mode is the hero; dark mode is the night edition.</p>
+      </div>
+    </div>
+
+    <div class="mock-row">
+      <div>
+        <div class="mock-cap">Hub · Direction C</div>
+        <div class="mock">
+          <div class="nav">
+            <div class="navL">
+              <div class="l"></div>
+              <nav><span class="on">Cabin</span><span>Pomodoro</span><span>Tasks</span><span>Calendar</span><span>Habits</span><span>Log</span></nav>
+            </div>
+            <div class="navR"><span>04 · 28 · 26</span><span>·</span><span>Tue</span></div>
+          </div>
+          <div class="hero">
+            <div class="heroL">
+              <div>
+                <div class="meta" style="margin-bottom:14px"><span>Tuesday</span><span>·</span><span>Week 18</span><span>·</span><span>Apr 28</span></div>
+                <div class="ttl">Good morning,<br>Roberto. <em>Three</em><br>orbits ahead.</div>
+              </div>
+              <div class="meta"><span>Focus 02h 15m</span><span>·</span><span>04 tasks</span><span>·</span><span>02 habits left</span></div>
+            </div>
+            <div class="heroR">
+              <div class="card">
+                <div class="k">Now playing</div>
+                <div class="v"><em>40:00</em> Focus</div>
+                <div class="k">Physics homework · cycle 03</div>
+              </div>
+              <div class="card">
+                <div class="k">Today's logged</div>
+                <div class="v">02h <em>15m</em></div>
+                <div class="k">Across 04 sessions</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="mock-cap">Eight pillars · Direction C</div>
+        <div class="pillars">
+          <div class="pillar"><div class="pl">Concept</div><div class="pn">Editorial atlas</div><div class="pd">Each module is a feature spread; serif headlines, generous margins, soft warm light.</div></div>
+          <div class="pillar"><div class="pl">Sidebar</div><div class="pn">Top horizontal nav</div><div class="pd">No left rail. Italic-serif inactive tabs, clean Inter for the active one. Feels like a masthead.</div></div>
+          <div class="pillar"><div class="pl">Layout</div><div class="pn">Hero + ledger</div><div class="pd">Each page has a hero block and a smaller ledger of details. Always one obvious focal point.</div></div>
+          <div class="pillar"><div class="pl">Timer</div><div class="pn">Editorial numerals</div><div class="pd">Display serif numerals fill a soft circle. Italic accents for the unit (m / s).</div></div>
+          <div class="pillar"><div class="pl">Tasks</div><div class="pn">Editorial cards</div><div class="pd">Cards have headlines and dek copy; less kanban, more reading list. Active is the hero spread.</div></div>
+          <div class="pillar"><div class="pl">Mobile</div><div class="pn">Reading-first</div><div class="pd">Excellent single-column behavior; type scale already optimized for narrow widths.</div></div>
+          <div class="pillar"><div class="pl">Themes</div><div class="pn">Cream is home</div><div class="pd">Tan = primary, daylight. Dark = night edition. Both equally cared-for.</div></div>
+          <div class="pillar"><div class="pl">Change</div><div class="pn">Mood swing</div><div class="pd">Biggest visual departure. Less "command cabin", more "field journal". Risk: less differentiated.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ COMPARISON / WINNER ============ -->
+<section id="winner">
+  <div class="section-head">
+    <div class="num">03 / RECOMMENDATION</div>
+    <div>
+      <h2>Picking the strongest&nbsp;direction.</h2>
+      <p class="lede">All three are workable. But the brief — premium, cinematic, space-inspired, calm — is most native to Direction A, and it absorbs the best parts of B and C as it grows.</p>
+    </div>
+  </div>
+
+  <div class="compare">
+    <div class="col win">
+      <h4>01 · Obsidian Observatory</h4>
+      <div class="sub">Recommended</div>
+      <div class="row"><span class="k">Cinematic feel</span><span class="v">★★★★★</span></div>
+      <div class="row"><span class="k">Space metaphor</span><span class="v">★★★★★</span></div>
+      <div class="row"><span class="k">Hierarchy &amp; readability</span><span class="v">★★★★☆</span></div>
+      <div class="row"><span class="k">Tan-mode strength</span><span class="v">★★★★☆</span></div>
+      <div class="row"><span class="k">Mobile</span><span class="v">★★★★☆</span></div>
+      <div class="row"><span class="k">Risk / scope</span><span class="v">Medium</span></div>
+    </div>
+    <div class="col">
+      <h4>02 · Voyager Log</h4>
+      <div class="sub">Strong alt</div>
+      <div class="row"><span class="k">Cinematic feel</span><span class="v">★★★☆☆</span></div>
+      <div class="row"><span class="k">Space metaphor</span><span class="v">★★★☆☆</span></div>
+      <div class="row"><span class="k">Hierarchy &amp; readability</span><span class="v">★★★★★</span></div>
+      <div class="row"><span class="k">Tan-mode strength</span><span class="v">★★★★★</span></div>
+      <div class="row"><span class="k">Mobile</span><span class="v">★★★★☆</span></div>
+      <div class="row"><span class="k">Risk / scope</span><span class="v">Low</span></div>
+    </div>
+    <div class="col">
+      <h4>03 · Lunar Atlas</h4>
+      <div class="sub">Most editorial</div>
+      <div class="row"><span class="k">Cinematic feel</span><span class="v">★★★★☆</span></div>
+      <div class="row"><span class="k">Space metaphor</span><span class="v">★★☆☆☆</span></div>
+      <div class="row"><span class="k">Hierarchy &amp; readability</span><span class="v">★★★★★</span></div>
+      <div class="row"><span class="k">Tan-mode strength</span><span class="v">★★★★★</span></div>
+      <div class="row"><span class="k">Mobile</span><span class="v">★★★★★</span></div>
+      <div class="row"><span class="k">Risk / scope</span><span class="v">High — biggest pivot</span></div>
+    </div>
+  </div>
+
+  <div class="pick-banner">
+    <div class="num">01</div>
+    <div class="t">
+      <div class="l">SELECTED · OBSIDIAN OBSERVATORY</div>
+      <div class="h">A unified observation deck.</div>
+      <div class="d">It already absorbs Direction B's mono-label discipline (used for metadata, presets, and crumbs) and Direction C's editorial display type (used for headlines and timer numerals). One backdrop, three depth levels, restrained red, generous air, and a tan mode that reads as paper. The remaining mocks below all sit inside this system.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DETAIL — POMODORO ============ -->
+<section id="detail">
+  <div class="section-head">
+    <div class="num">04 / DETAIL · POMODORO</div>
+    <div>
+      <h2>The hero dial gets&nbsp;room.</h2>
+      <p class="lede">The dial doubles in scale and centers on the page. Controls dock immediately below, with cycle pips to show progress through the session. The right rail reorganizes into three named groups: timing, label, and stats.</p>
+    </div>
+  </div>
+
+  <div class="mock mock-detail ddetail is-pdom">
+    <div class="pdom"></div>
+    <div class="nav">
+      <div class="logo"></div>
+      <div class="ni">⌂</div>
+      <div class="ni active">⏱</div>
+      <div class="ni">⏲</div>
+      <div class="ni">≡</div>
+      <div class="ni">▣</div>
+      <div class="ni">◷</div>
+      <div class="ni">★</div>
+      <div class="spacer"></div>
+      <div class="ni">◐</div>
+      <div class="ni">⌥</div>
+      <div class="ni">⚙</div>
+    </div>
+    <div class="top">
+      <div>
+        <div class="crumb">CABIN <span style="opacity:.4">/</span> <span class="live">● WORK CYCLE 03 OF 06</span></div>
+        <div class="pgtitle">Pomodoro</div>
+      </div>
+      <div class="quick">
+        <span class="pill on">Focus</span>
+        <span class="pill">Break</span>
+        <span class="pill">Long break</span>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="session-line"><span class="live">●</span>&nbsp;&nbsp;Work — 40 minutes remaining&nbsp;&nbsp;·&nbsp;&nbsp;Physics Homework</div>
+      <div class="ring-outer">
+        <div class="ring">
+          <div style="position:relative;z-index:2;text-align:center">
+            <div class="ttime">40:00</div>
+            <div class="tlabel">68% complete</div>
+          </div>
+        </div>
+      </div>
+      <div class="pips">
+        <div class="p done"></div><div class="p done"></div><div class="p now"></div><div class="p"></div><div class="p"></div><div class="p"></div>
+      </div>
+      <div class="ctrls">
+        <div style="display:flex;flex-direction:column;align-items:center"><div class="b">↺</div><span class="key">R</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center"><button class="b play">▶</button><span class="key">SPACE</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center"><div class="b">⏭</div><span class="key">→</span></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h4>Session · 03 / 06</h4>
+
+      <div class="group">
+        <div class="ghead"><div class="glab">Focus</div><div class="gval">40<em>min</em></div></div>
+        <div class="presets">
+          <span class="ch">25m</span><span class="ch on">40m</span><span class="ch">60m</span><span class="ch">90m</span>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="ghead"><div class="glab">Short break</div><div class="gval">17<em>min</em></div></div>
+        <div class="presets">
+          <span class="ch on">5m</span><span class="ch">10m</span><span class="ch">15m</span>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="ghead"><div class="glab">Long break · every</div><div class="gval">4<em>cycles</em></div></div>
+        <div class="presets">
+          <span class="ch">2</span><span class="ch">3</span><span class="ch on">4</span><span class="ch">6</span>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="glab" style="margin-bottom:8px">Label</div>
+        <input class="label-input" value="Physics Homework — Ch. 03" />
+      </div>
+
+      <div class="group">
+        <div class="glab" style="margin-bottom:10px">Today</div>
+        <div class="stat-line"><span>Sessions</span><span class="v">04</span></div>
+        <div class="stat-line"><span>Focused</span><span class="v">02h 15m</span></div>
+        <div class="stat-line"><span>Streak</span><span class="v">12 days</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stack-16" style="margin-top:32px;display:grid;grid-template-columns:repeat(3,1fr);gap:24px">
+    <div><div class="mock-cap">Why it works · 01</div><p style="color:var(--ink-dim);font-size:14px;line-height:1.6">The dial is the page. Everything else is in service of it: title shrinks, panel narrows, stats compress to a tiny stat-line block.</p></div>
+    <div><div class="mock-cap">Why it works · 02</div><p style="color:var(--ink-dim);font-size:14px;line-height:1.6">Cycle pips replace the tiny "03 of 06" label — instantly readable, and they animate as the session advances.</p></div>
+    <div><div class="mock-cap">Why it works · 03</div><p style="color:var(--ink-dim);font-size:14px;line-height:1.6">Keyboard hints under the controls turn the timer into something you can drive without the mouse — Space, R, →.</p></div>
+  </div>
+</section>
+
+<!-- ============ DETAIL — TASKS ============ -->
+<section>
+  <div class="section-head">
+    <div class="num">05 / DETAIL · TASKS</div>
+    <div>
+      <h2>Active gets the&nbsp;weight.</h2>
+      <p class="lede">Burner / Active / Completed share the board, but Active is the wide center column and uses richer cards. The header turns into a real toolbar — filters, view switch, primary action — instead of a lonely "+ New Task" button in the corner.</p>
+    </div>
+  </div>
+
+  <div class="mock mock-detail wide ddetail is-tasks">
+    <div class="tasks-page"></div>
+    <div class="nav">
+      <div class="logo"></div>
+      <div class="ni">⌂</div>
+      <div class="ni">⏱</div>
+      <div class="ni">⏲</div>
+      <div class="ni active">≡</div>
+      <div class="ni">▣</div>
+      <div class="ni">◷</div>
+      <div class="ni">★</div>
+      <div class="spacer"></div>
+      <div class="ni">◐</div>
+      <div class="ni">⌥</div>
+      <div class="ni">⚙</div>
+    </div>
+    <div class="top">
+      <div>
+        <div class="crumb">CABIN <span style="opacity:.4">/</span> TASKS</div>
+        <div class="pgtitle">Tasks</div>
+      </div>
+      <div class="quick">
+        <span class="pill on">Board</span>
+        <span class="pill">List</span>
+        <span class="pill">Calendar</span>
+      </div>
+    </div>
+    <div class="stage" style="position:absolute;left:72px;top:108px;right:0;bottom:0;padding:32px 40px;overflow:hidden">
+      <div class="filters" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+        <div class="l" style="display:flex;gap:8px">
+          <span class="ft on" style="padding:7px 12px;border:1px solid var(--line-2);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink);letter-spacing:.16em;text-transform:uppercase;border-radius:3px;background:rgba(236,231,221,.06)">All · 09</span>
+          <span class="ft" style="padding:7px 12px;border:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-mute);letter-spacing:.16em;text-transform:uppercase;border-radius:3px">Work · 04</span>
+          <span class="ft" style="padding:7px 12px;border:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-mute);letter-spacing:.16em;text-transform:uppercase;border-radius:3px">Study · 03</span>
+          <span class="ft" style="padding:7px 12px;border:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-mute);letter-spacing:.16em;text-transform:uppercase;border-radius:3px">Life · 02</span>
+        </div>
+        <div class="r" style="display:flex;gap:10px;align-items:center;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-mute);letter-spacing:.14em;text-transform:uppercase">
+          <span>Sort: priority</span>
+          <span class="add" style="padding:9px 14px;background:var(--red);color:#fff;border-radius:3px;letter-spacing:.16em">+ New task</span>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1.6fr 1fr;gap:20px;height:calc(100% - 70px)">
+
+        <!-- BURNER -->
+        <div style="background:rgba(14,14,17,.55);border:1px solid var(--line);border-radius:4px;display:flex;flex-direction:column;overflow:hidden">
+          <div style="padding:18px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:6px;height:6px;border-radius:50%;background:var(--ink-dim)"></div>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink)">Burner</span>
+            </div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-mute)">04</span>
+          </div>
+          <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
+            <div style="background:#0E0E11;border:1px solid var(--line);border-radius:4px;padding:14px 16px">
+              <div style="font-size:13px;color:var(--ink);margin-bottom:10px;line-height:1.4">Review Q2 budget draft</div>
+              <div style="display:flex;justify-content:space-between;align-items:center;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-mute);letter-spacing:.12em;text-transform:uppercase"><span style="padding:3px 6px;border:1px solid rgba(229,72,77,.3);color:#FFC4C0;border-radius:2px">WORK</span><span>DUE FRI</span></div>
+            </div>
+            <div style="background:#0E0E11;border:1px solid var(--line);border-radius:4px;padding:14px 16px">
+              <div style="font-size:13px;color:var(--ink);margin-bottom:10px;line-height:1.4">Read Calculus Ch. 03</div>
+              <div style="display:flex;justify-content:space-between;align-items:center;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-mute);letter-spacing:.12em;text-transform:uppercase"><span style="padding:3px 6px;border:1px solid rgba(120,150,200,.25);color:#C4D4FF;border-radius:2px">STUDY</span><span>45m</span></div>
+            </div>
+            <div style="background:#0E0E11;border:1px solid var(--line);border-radius:4px;padding:14px 16px">
+              <div style="font-size:13px;color:var(--ink);margin-bottom:10px;line-height:1.4">Renew car insurance</div>
+              <div style="display:flex;justify-content:space-between;align-items:center;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-mute);letter-spacing:.12em;text-transform:uppercase"><span style="padding:3px 6px;border:1px solid var(--line-2);color:var(--ink-dim);border-radius:2px">ADMIN</span><span>DUE 05.04</span></div>
+            </div>
+            <div style="background:#0E0E11;border:1px solid var(--line);border-radius:4px;padding:14px 16px">
+              <div style="font-size:13px;color:var(--ink);margin-bottom:10px;line-height:1.4">Reply to Mom</div>
+              <div style="display:flex;justify-content:space-between;align-items:center;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-mute);letter-spacing:.12em;text-transform:uppercase"><span style="padding:3px 6px;border:1px solid var(--line-2);color:var(--ink-dim);border-radius:2px">LIFE</span><span></span></div>
+            </div>
+            <div style="padding:10px;border:1px dashed var(--line-2);border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-mute);text-align:center;letter-spacing:.16em;text-transform:uppercase">+ Add to burner</div>
+          </div>
+        </div>
+
+        <!-- ACTIVE -->
+        <div style="background:rgba(20,16,18,.65);border:1px solid rgba(229,72,77,.25);border-radius:4px;display:flex;flex-direction:column;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(229,72,77,.05)">
+          <div style="padding:18px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:6px;height:6px;border-radius:50%;background:var(--red);box-shadow:0 0 10px rgba(229,72,77,.6)"></div>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink)">Active</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-mute);letter-spacing:.18em">· IN ORBIT</span>
+            </div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#FFC4C0">02</span>
+          </div>
+          <div style="padding:14px;display:flex;flex-direction:column;gap:12px">
+            <!-- richer card -->
+            <div style="background:#15100E;border:1px solid var(--line);border-left:2px solid var(--red);border-radius:4px;padding:18px 20px">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+                <div style="font-size:15px;color:var(--ink);line-height:1.35;font-weight:500">Finish physics homework</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#FFC4C0;letter-spacing:.18em;text-transform:uppercase">● LIVE</div>
+              </div>
+              <div style="font-size:12px;color:var(--ink-dim);line-height:1.55;margin-bottom:14px">Chapters 3–4 problems, double-check vector notation before submitting.</div>
+              <!-- mini progress -->
+              <div style="height:3px;background:var(--line-2);border-radius:2px;margin-bottom:10px;position:relative;overflow:hidden">
+                <div style="position:absolute;left:0;top:0;bottom:0;width:54%;background:var(--red)"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--ink-mute);letter-spacing:.14em;text-transform:uppercase">
+                <span><span style="color:#C4D4FF;border:1px solid rgba(120,150,200,.25);padding:3px 6px;border-radius:2px;margin-right:8px">STUDY</span> 1H 12M LOGGED · 3 SESSIONS</span>
+                <span>HIGH</span>
+              </div>
+            </div>
+
+            <div style="background:#15100E;border:1px solid var(--line);border-left:2px solid var(--red);border-radius:4px;padding:18px 20px">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+                <div style="font-size:15px;color:var(--ink);line-height:1.35;font-weight:500">Draft project proposal</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-mute);letter-spacing:.18em;text-transform:uppercase">○ IDLE</div>
+              </div>
+              <div style="font-size:12px;color:var(--ink-dim);line-height:1.55;margin-bottom:14px">Outline + intro. Reuse last quarter's structure, swap in new client brief.</div>
+              <div style="height:3px;background:var(--line-2);border-radius:2px;margin-bottom:10px;position:relative;overflow:hidden">
+                <div style="position:absolute;left:0;top:0;bottom:0;width:18%;background:var(--red)"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--ink-mute);letter-spacing:.14em;text-transform:uppercase">
+                <span><span style="color:#FFC4C0;border:1px solid rgba(229,72,77,.3);padding:3px 6px;border-radius:2px;margin-right:8px">WORK</span> 25M LOGGED · 1 SESSION</span>
+                <span>MEDIUM</span>
+              </div>
+            </div>
+            <div style="padding:10px;border:1px dashed var(--line-2);border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-mute);text-align:center;letter-spacing:.16em;text-transform:uppercase">+ Pull task into orbit</div>
+          </div>
+        </div>
+
+        <!-- COMPLETED -->
+        <div style="background:rgba(14,14,17,.55);border:1px solid var(--line);border-radius:4px;display:flex;flex-direction:column;overflow:hidden">
+          <div style="padding:18px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:6px;height:6px;border-radius:50%;background:#9DB596"></div>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink)">Completed</span>
+            </div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-mute)">03 TODAY</span>
+          </div>
+          <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
+            <div style="background:#0E0E11;border:1px solid var(--line);border-left:2px solid rgba(157,181,150,.5);border-radius:4px;padding:14px 16px;opacity:.78">
+              <div style="font-size:13px;color:var(--ink);margin-bottom:10px;line-height:1.4;text-decoration:line-through;text-decoration-color:rgba(236,231,221,.25)">Morning run · 5 km</div>
+              <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-mute);letter-spacing:.12em;text-transform:uppercase"><span>06:42 · 32M</span><span>HEALTH</span></div>
+            </div>
+            <div style="background:#0E0E11;border:1px solid var(--line);border-left:2px solid rgba(157,181,150,.5);border-radius:4px;padding:14px 16px;opacity:.78">
+              <div style="font-size:13px;color:var(--ink);margin-bottom:10px;line-height:1.4;text-decoration:line-through;text-decoration-color:rgba(236,231,221,.25)">Stand-up notes</div>
+              <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-mute);letter-spacing:.12em;text-transform:uppercase"><span>07:10 · 18M</span><span>WORK</span></div>
+            </div>
+            <div style="background:#0E0E11;border:1px solid var(--line);border-left:2px solid rgba(157,181,150,.5);border-radius:4px;padding:14px 16px;opacity:.78">
+              <div style="font-size:13px;color:var(--ink);margin-bottom:10px;line-height:1.4;text-decoration:line-through;text-decoration-color:rgba(236,231,221,.25)">Inbox to zero</div>
+              <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-mute);letter-spacing:.12em;text-transform:uppercase"><span>07:28 · 22M</span><span>ADMIN</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stack-16" style="margin-top:32px;display:grid;grid-template-columns:repeat(3,1fr);gap:24px">
+    <div><div class="mock-cap">Why it works · 01</div><p style="color:var(--ink-dim);font-size:14px;line-height:1.6">Active is 1.6× the side columns, with richer cards (description, progress bar, log time). It tells you "this is where to look first."</p></div>
+    <div><div class="mock-cap">Why it works · 02</div><p style="color:var(--ink-dim);font-size:14px;line-height:1.6">A real toolbar replaces the empty header — category filters, view switch, sort, primary action. The page now scales to many tasks.</p></div>
+    <div><div class="mock-cap">Why it works · 03</div><p style="color:var(--ink-dim);font-size:14px;line-height:1.6">Color-coded category tags + colored left rails for priority give the board scannable rhythm without resorting to chunky illustration.</p></div>
+  </div>
+</section>
+
+<!-- ============ DETAIL — MOBILE ============ -->
+<section>
+  <div class="section-head">
+    <div class="num">06 / DETAIL · MOBILE</div>
+    <div>
+      <h2>Phone-native, not&nbsp;shrunken.</h2>
+      <p class="lede">The sidebar collapses to a 5-tab bottom bar (Cabin, Pomodoro, Tasks, Calendar, Log). Every screen is a single column with a clear hero. Three-column boards like Tasks become segmented controls — Burner / Active / Completed — and the active segment fills the screen.</p>
+    </div>
+  </div>
+
+  <div class="mobile-row">
+    <div>
+      <div class="phone ph1">
+        <div class="notch"></div>
+        <div class="stat"><span>9:41</span><span>● ● ●</span></div>
+        <div class="pcontent">
+          <div class="greet">TUE · APR 28 · 09:41</div>
+          <div class="pgreet">Good morning,<br><em>Roberto</em>.</div>
+          <div class="focus">
+            <div class="l">FOCUS · ON · PHYSICS HOMEWORK</div>
+            <div class="t">40:00</div>
+            <div class="b"></div>
+          </div>
+          <div class="grid">
+            <div class="gc"><div class="gl">TASKS</div><div class="gv"><em>02</em>/04</div><div class="gd">Active in orbit</div></div>
+            <div class="gc"><div class="gl">HABITS</div><div class="gv"><em>04</em>/06</div><div class="gd">Today</div></div>
+            <div class="gc"><div class="gl">LOGGED</div><div class="gv">2h <em>15m</em></div><div class="gd">Today</div></div>
+            <div class="gc"><div class="gl">STREAK</div><div class="gv"><em>12</em>d</div><div class="gd">Don't break it</div></div>
+          </div>
+        </div>
+        <div class="ptab">
+          <div class="ti on"><div class="ic"></div>Cabin</div>
+          <div class="ti"><div class="ic"></div>Focus</div>
+          <div class="ti"><div class="ic"></div>Tasks</div>
+          <div class="ti"><div class="ic"></div>Cal</div>
+          <div class="ti"><div class="ic"></div>Log</div>
+        </div>
+      </div>
+      <div class="phone-cap">Cabin · Hub</div>
+    </div>
+
+    <div>
+      <div class="phone ph2">
+        <div class="notch"></div>
+        <div class="stat"><span>9:41</span><span>● ● ●</span></div>
+        <div class="pcontent">
+          <div class="plab">● WORK · CYCLE 03 / 06</div>
+          <div class="pring"><div class="pt">40:00</div></div>
+          <div class="pctrls">
+            <div class="b">↺</div>
+            <button class="play">▶</button>
+            <div class="b">⏭</div>
+          </div>
+          <div class="ppres">
+            <span class="pp">25m</span><span class="pp on">40m</span><span class="pp">60m</span><span class="pp">90m</span>
+          </div>
+        </div>
+        <div class="ptab">
+          <div class="ti"><div class="ic"></div>Cabin</div>
+          <div class="ti on"><div class="ic"></div>Focus</div>
+          <div class="ti"><div class="ic"></div>Tasks</div>
+          <div class="ti"><div class="ic"></div>Cal</div>
+          <div class="ti"><div class="ic"></div>Log</div>
+        </div>
+      </div>
+      <div class="phone-cap">Pomodoro · Mobile</div>
+    </div>
+
+    <div>
+      <div class="phone ph3">
+        <div class="notch"></div>
+        <div class="stat"><span>9:41</span><span>● ● ●</span></div>
+        <div class="pcontent">
+          <div class="pttl">Tasks</div>
+          <div class="seg"><div class="si">Burner 04</div><div class="si on">Active 02</div><div class="si">Done 03</div></div>
+          <div class="tsk">
+            <div class="tx">Finish physics homework</div>
+            <div class="tm"><em>STUDY</em>1H 12M · HIGH</div>
+          </div>
+          <div class="tsk">
+            <div class="tx">Draft project proposal</div>
+            <div class="tm"><em>WORK</em>25M · MEDIUM</div>
+          </div>
+          <div class="tsk lp">
+            <div class="tx">Plan weekend trip</div>
+            <div class="tm"><em>LIFE</em>LOW</div>
+          </div>
+        </div>
+        <div class="ptab">
+          <div class="ti"><div class="ic"></div>Cabin</div>
+          <div class="ti"><div class="ic"></div>Focus</div>
+          <div class="ti on"><div class="ic"></div>Tasks</div>
+          <div class="ti"><div class="ic"></div>Cal</div>
+          <div class="ti"><div class="ic"></div>Log</div>
+        </div>
+      </div>
+      <div class="phone-cap">Tasks · Mobile</div>
+    </div>
+
+    <div>
+      <div class="phone ph4">
+        <div class="notch"></div>
+        <div class="stat"><span>9:41</span><span>● ● ●</span></div>
+        <div class="pcontent">
+          <div class="pttl">Log</div>
+          <div class="psub">04 · 28 · 26 · 03 ENTRIES</div>
+          <div class="acc">
+            <div class="th"></div>
+            <div class="ai"><div class="at">Submitted physics report</div><div class="am">07:48 · 1H 28M · STUDY</div></div>
+          </div>
+          <div class="acc">
+            <div class="th"></div>
+            <div class="ai"><div class="at">Reviewed budget draft v2</div><div class="am">06:32 · 42M · WORK</div></div>
+          </div>
+          <div class="acc">
+            <div class="th"></div>
+            <div class="ai"><div class="at">Morning run · 5 km</div><div class="am">06:00 · 32M · HEALTH</div></div>
+          </div>
+        </div>
+        <div class="ptab">
+          <div class="ti"><div class="ic"></div>Cabin</div>
+          <div class="ti"><div class="ic"></div>Focus</div>
+          <div class="ti"><div class="ic"></div>Tasks</div>
+          <div class="ti"><div class="ic"></div>Cal</div>
+          <div class="ti on"><div class="ic"></div>Log</div>
+        </div>
+      </div>
+      <div class="phone-cap">Accomplishments · Mobile</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DETAIL — ACCOMPLISHMENTS ============ -->
+<section>
+  <div class="section-head">
+    <div class="num">07 / DETAIL · ACCOMPLISHMENTS</div>
+    <div>
+      <h2>The PDF gets out&nbsp;of the box.</h2>
+      <p class="lede">Two-pane layout: a chronological feed on the left, and a dedicated preview surface on the right. Selecting an entry loads its attachment full-height in the right pane. Clicking the preview enters a focus mode that takes over the viewport — no more nested containers.</p>
+    </div>
+  </div>
+
+  <div class="mock mock-detail wide ddetail is-acc">
+    <div class="acc-page"></div>
+    <div class="nav">
+      <div class="logo"></div>
+      <div class="ni">⌂</div>
+      <div class="ni">⏱</div>
+      <div class="ni">⏲</div>
+      <div class="ni">≡</div>
+      <div class="ni">▣</div>
+      <div class="ni active">◷</div>
+      <div class="ni">★</div>
+      <div class="spacer"></div>
+      <div class="ni">◐</div>
+      <div class="ni">⌥</div>
+      <div class="ni">⚙</div>
+    </div>
+    <div class="top">
+      <div>
+        <div class="crumb">CABIN <span style="opacity:.4">/</span> LOG</div>
+        <div class="pgtitle">Accomplishments</div>
+      </div>
+      <div class="quick">
+        <span class="pill on">Today</span>
+        <span class="pill">Week</span>
+        <span class="pill">Month</span>
+        <span class="pill">All</span>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="feed">
+        <div class="feed-head">
+          <div class="ft">
+            <span class="f on">All · 12</span>
+            <span class="f">With files · 04</span>
+            <span class="f">Work · 06</span>
+          </div>
+          <span class="add">+ Log accomplishment</span>
+        </div>
+
+        <div class="day-marker"><span><em>TODAY</em> · APR 28</span><span>03 ENTRIES · 02H 42M</span></div>
+
+        <div class="entry active">
+          <div class="stamp"><div class="h">07:48</div>1h 28m</div>
+          <div class="body">
+            <div class="t">Submitted physics report — chapters 3 &amp; 4</div>
+            <div class="n">Notes: vector notation cleaned up, professor's feedback incorporated. Final PDF attached.</div>
+            <div class="meta"><span class="tag work">STUDY</span><span class="tag">Linked: Physics homework</span></div>
+          </div>
+          <div class="att"><span class="pdfdot"></span>physics-report-v3.pdf · 2.4 MB</div>
+        </div>
+
+        <div class="entry">
+          <div class="stamp"><div class="h">06:32</div>42m</div>
+          <div class="body">
+            <div class="t">Reviewed Q2 budget draft v2</div>
+            <div class="n">Caught two off-by-one errors in the marketing line. Sent comments back.</div>
+            <div class="meta"><span class="tag work">WORK</span></div>
+          </div>
+          <div class="att"><span class="pdfdot"></span>budget-q2.xlsx · 184 KB</div>
+        </div>
+
+        <div class="entry">
+          <div class="stamp"><div class="h">06:00</div>32m</div>
+          <div class="body">
+            <div class="t">Morning run · 5 km</div>
+            <div class="n">First sub-25min in three weeks. Cool morning, perfect light.</div>
+            <div class="meta"><span class="tag">HEALTH</span></div>
+          </div>
+          <div class="att" style="opacity:.4">no attachment</div>
+        </div>
+
+        <div class="day-marker" style="margin-top:14px"><span><em>YESTERDAY</em> · APR 27</span><span>04 ENTRIES · 03H 50M</span></div>
+
+        <div class="entry">
+          <div class="stamp"><div class="h">21:14</div>1h 05m</div>
+          <div class="body">
+            <div class="t">Finished design system audit</div>
+            <div class="meta"><span class="tag work">WORK</span></div>
+          </div>
+          <div class="att"><span class="pdfdot"></span>audit-summary.pdf · 1.1 MB</div>
+        </div>
+
+      </div>
+
+      <div class="preview">
+        <div class="pvhead">
+          <div class="pl">PREVIEW · physics-report-v3.pdf</div>
+          <div class="pr"><span class="b">⤢</span><span class="b">⇣</span><span class="b">⌫</span></div>
+        </div>
+        <div class="pvbody">
+          <div class="pdfpage">
+            <div class="pl1"></div>
+            <div class="pl2"></div>
+            <div class="pl3"></div>
+            <div class="pl3 s"></div>
+            <div class="pl3 t"></div>
+            <div class="pl3 u"></div>
+            <div class="img"></div>
+            <div class="pl3"></div>
+            <div class="pl3 s"></div>
+            <div class="pl3 t"></div>
+            <div class="pl3 u"></div>
+          </div>
+        </div>
+        <div class="pvfoot">
+          <span>PAGE 01 / 12 · 2.4 MB</span>
+          <span class="open">⤢ FOCUS MODE</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stack-16" style="margin-top:32px;display:grid;grid-template-columns:repeat(3,1fr);gap:24px">
+    <div><div class="mock-cap">Solves · 01</div><p style="color:var(--ink-dim);font-size:14px;line-height:1.6">The PDF lives in its own breathable surface — full vertical, with explicit page chrome (page count, size, focus button). It's not nested inside a card.</p></div>
+    <div><div class="mock-cap">Solves · 02</div><p style="color:var(--ink-dim);font-size:14px;line-height:1.6">Day markers replace the void empty-state. The page tells a chronological story: today, yesterday, last week — and each marker totals the day.</p></div>
+    <div><div class="mock-cap">Solves · 03</div><p style="color:var(--ink-dim);font-size:14px;line-height:1.6">Focus mode (the ⤢ button) maximizes the doc to viewport with a thin top bar. Esc returns to the feed. Best of both worlds.</p></div>
+  </div>
+</section>
+
+<!-- ============ DETAIL — APPEARANCE ============ -->
+<section>
+  <div class="section-head">
+    <div class="num">08 / DETAIL · APPEARANCE</div>
+    <div>
+      <h2>Preview, don't&nbsp;guess.</h2>
+      <p class="lede">The current Appearance drawer is a vertical list of radios. The redesigned panel is a half-screen sheet: live preview on the left updates as you change controls on the right. Theme, background, filter, and motion are visible before you commit.</p>
+    </div>
+  </div>
+
+  <div class="mock mock-detail ddetail is-theme">
+    <div class="theme-page"></div>
+    <div class="nav">
+      <div class="logo"></div>
+      <div class="ni">⌂</div>
+      <div class="ni">⏱</div>
+      <div class="ni">⏲</div>
+      <div class="ni">≡</div>
+      <div class="ni">▣</div>
+      <div class="ni">◷</div>
+      <div class="ni">★</div>
+      <div class="spacer"></div>
+      <div class="ni active">◐</div>
+      <div class="ni">⌥</div>
+      <div class="ni">⚙</div>
+    </div>
+    <div class="top">
+      <div>
+        <div class="crumb">CABIN <span style="opacity:.4">/</span> APPEARANCE</div>
+        <div class="pgtitle">Appearance</div>
+      </div>
+      <div class="quick">
+        <span class="pill">Reset to default</span>
+        <span class="pill on">Save</span>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="live-preview">
+        <div class="lpttl">LIVE PREVIEW · POMODORO</div>
+        <div class="lpcenter">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-mute);letter-spacing:.32em;text-transform:uppercase;margin-bottom:18px">● WORK · CYCLE 03</div>
+          40<em>:00</em>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-mute);letter-spacing:.32em;text-transform:uppercase;margin-top:14px">68% complete</div>
+        </div>
+        <div class="lpsub"><span>● DARK SPACE · NEBULA · CLEAN · STILL</span><span>1280×720</span></div>
+      </div>
+
+      <div class="controls">
+        <div>
+          <div class="ttitle">Customize the cabin.</div>
+          <div class="tsub">Changes apply live</div>
+        </div>
+
+        <div class="grp">
+          <div class="gh"><span>Theme</span><span style="color:var(--ink)">DARK SPACE</span></div>
+          <div class="duo">
+            <div class="opt on">
+              <div class="swatch" style="background:radial-gradient(circle at 30% 30%, #1A0E10, #050507)"></div>
+              <div class="nm">● Dark Space</div>
+              <div class="ds">Default · cinematic</div>
+            </div>
+            <div class="opt">
+              <div class="swatch" style="background:linear-gradient(180deg,#F2EADA, #E6D9BC)"></div>
+              <div class="nm">Light Tan</div>
+              <div class="ds">Daylight · paper</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grp">
+          <div class="gh"><span>Background</span><span style="color:var(--ink)">NEBULA</span></div>
+          <div class="bg-grid">
+            <div class="bg-opt b1 on"><div class="lbl"><span>Nebula</span><span>●</span></div></div>
+            <div class="bg-opt b2"><div class="lbl"><span>Hall</span><span></span></div></div>
+            <div class="bg-opt b3"><div class="lbl"><span>Grid</span><span></span></div></div>
+            <div class="bg-opt b4"><div class="lbl"><span>Mars</span><span></span></div></div>
+            <div class="bg-opt b6"><div class="lbl"><span>Cabin</span><span></span></div></div>
+            <div class="bg-opt b5"><div class="lbl" style="color:#2A241B"><span>Paper</span><span></span></div></div>
+          </div>
+        </div>
+
+        <div class="grp">
+          <div class="gh"><span>Filter</span><span style="color:var(--ink)">CLEAN</span></div>
+          <div class="duo" style="grid-template-columns:repeat(3,1fr);gap:6px">
+            <div class="opt on" style="padding:10px"><div class="nm" style="font-size:11px">Clean</div><div class="ds" style="font-size:8px">No effect</div></div>
+            <div class="opt" style="padding:10px"><div class="nm" style="font-size:11px">Retro</div><div class="ds" style="font-size:8px">Sepia</div></div>
+            <div class="opt" style="padding:10px"><div class="nm" style="font-size:11px">Scanlines</div><div class="ds" style="font-size:8px">Subtle</div></div>
+            <div class="opt" style="padding:10px"><div class="nm" style="font-size:11px">Dim</div><div class="ds" style="font-size:8px">Darker</div></div>
+            <div class="opt" style="padding:10px"><div class="nm" style="font-size:11px">Mono</div><div class="ds" style="font-size:8px">Grayscale</div></div>
+            <div class="opt" style="padding:10px"><div class="nm" style="font-size:11px">Warm</div><div class="ds" style="font-size:8px">Honey tint</div></div>
+          </div>
+        </div>
+
+        <div class="grp">
+          <div class="gh"><span>Motion</span><span style="color:var(--ink)">STILL</span></div>
+          <div class="row-toggle">
+            <div class="lab"><span>Ambient drift</span><span class="ll">Subtle parallax on backdrop</span></div>
+            <div class="toggle"></div>
+          </div>
+          <div class="row-toggle">
+            <div class="lab"><span>Orbit</span><span class="ll">Cosmic drift, slowest tier</span></div>
+            <div class="toggle on"></div>
+          </div>
+          <div class="row-toggle">
+            <div class="lab"><span>Sound</span><span class="ll">Tick + chime on session end</span></div>
+            <div class="toggle"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tan vs dark example -->
+  <div class="section-head" style="margin-top:88px;margin-bottom:24px">
+    <div class="num">08.1 · DARK & TAN</div>
+    <div>
+      <h2>Both modes feel&nbsp;intentional.</h2>
+      <p class="lede">Tan mode isn't dark mode bleached — it's its own warm-paper system: cream surface, deep ink type, the same red accent, deeper shadows. Both modes share spacing, type, and ring geometry; only color and depth shift.</p>
+    </div>
+  </div>
+
+  <div class="tan-row">
+    <div class="tan-card dark">
+      <div class="label">DARK SPACE — POMODORO</div>
+      <div class="center">
+        <div class="csmall">● WORK · 40 MIN</div>
+        <div class="ttime">40:00</div>
+        <div class="cb"><span class="b">↺</span><button class="b play">▶</button><span class="b">⏭</span></div>
+      </div>
+    </div>
+    <div class="tan-card tan">
+      <div class="label">LIGHT TAN — POMODORO</div>
+      <div class="center">
+        <div class="csmall">● WORK · 40 MIN</div>
+        <div class="ttime">40<em>:00</em></div>
+        <div class="cb"><span class="b">↺</span><button class="b play">▶</button><span class="b">⏭</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SYSTEM ============ -->
+<section id="system">
+  <div class="section-head">
+    <div class="num">09 / SYSTEM</div>
+    <div>
+      <h2>The shared&nbsp;grammar.</h2>
+      <p class="lede">A quick look at the underlying tokens. Everything in this document was drawn from this system. Three depth levels, three type roles, one accent.</p>
+    </div>
+  </div>
+
+  <div class="type-stack">
+    <div class="type-row">
+      <div class="lab">Display</div>
+      <div class="demo-display">Roberto's <em>Aid</em>.</div>
+      <div class="spec">Instrument Serif · 56–104 / 0.95 / -0.02em</div>
+    </div>
+    <div class="type-row">
+      <div class="lab">H1 / Page</div>
+      <div class="demo-h1">Pomodoro</div>
+      <div class="spec">Instrument Serif · 32–40 / 1.0 / -0.01em</div>
+    </div>
+    <div class="type-row">
+      <div class="lab">H2 / Section</div>
+      <div class="demo-h2">Today's session</div>
+      <div class="spec">Inter Medium · 18–22 / 1.2</div>
+    </div>
+    <div class="type-row">
+      <div class="lab">Body</div>
+      <div class="demo-body">Cycle 03 of 06 — focus is locked. Three orbits ahead before your long break, but you're already 68% through this one.</div>
+      <div class="spec">Inter Regular · 14–16 / 1.6</div>
+    </div>
+    <div class="type-row">
+      <div class="lab">Mono / Meta</div>
+      <div class="demo-mono">● WORK · CYCLE 03 OF 06 · 1H 12M LOGGED</div>
+      <div class="spec">JetBrains Mono · 9–11 / 0.18em letter-spacing / uppercase</div>
+    </div>
+  </div>
+
+  <div class="system-grid">
+    <div class="spec">
+      <div class="st">DARK MODE · TOKENS</div>
+      <h4>Dark Space</h4>
+      <ul>
+        <li><span class="k">Backdrop</span><span class="v">#08080A</span></li>
+        <li><span class="k">Surface 1</span><span class="v">#0E0E11</span></li>
+        <li><span class="k">Surface 2</span><span class="v">#141418</span></li>
+        <li><span class="k">Hairline</span><span class="v">rgba(236,231,221,.08)</span></li>
+        <li><span class="k">Ink</span><span class="v">#ECE7DD</span></li>
+        <li><span class="k">Ink dim</span><span class="v">#9A958B</span></li>
+        <li><span class="k">Accent</span><span class="v">#E5484D · "Mars"</span></li>
+      </ul>
+      <div class="swatch-row">
+        <span class="sw" style="background:#08080A"></span>
+        <span class="sw" style="background:#0E0E11"></span>
+        <span class="sw" style="background:#141418"></span>
+        <span class="sw" style="background:#ECE7DD"></span>
+        <span class="sw" style="background:#9A958B"></span>
+        <span class="sw" style="background:#E5484D"></span>
+      </div>
+    </div>
+    <div class="spec">
+      <div class="st">TAN MODE · TOKENS</div>
+      <h4>Light Tan</h4>
+      <ul>
+        <li><span class="k">Backdrop</span><span class="v">#F2EADA</span></li>
+        <li><span class="k">Surface 1</span><span class="v">#FBF5E5</span></li>
+        <li><span class="k">Surface 2</span><span class="v">#EDE2C9</span></li>
+        <li><span class="k">Hairline</span><span class="v">rgba(42,36,27,.12)</span></li>
+        <li><span class="k">Ink</span><span class="v">#2A241B</span></li>
+        <li><span class="k">Ink dim</span><span class="v">#7A6F5C</span></li>
+        <li><span class="k">Accent</span><span class="v">#C7322F · same Mars, deeper</span></li>
+      </ul>
+      <div class="swatch-row">
+        <span class="sw" style="background:#F2EADA"></span>
+        <span class="sw" style="background:#FBF5E5"></span>
+        <span class="sw" style="background:#EDE2C9"></span>
+        <span class="sw" style="background:#2A241B"></span>
+        <span class="sw" style="background:#7A6F5C"></span>
+        <span class="sw" style="background:#C7322F"></span>
+      </div>
+    </div>
+    <div class="spec">
+      <div class="st">DEPTH</div>
+      <h4>Three values, never four</h4>
+      <ul>
+        <li><span class="k">L0</span><span class="v">Backdrop · ambient</span></li>
+        <li><span class="k">L1</span><span class="v">Stage · the page</span></li>
+        <li><span class="k">L2</span><span class="v">Surface · panels &amp; cards</span></li>
+        <li><span class="k">L3</span><span class="v">Modal · drawer · focus mode</span></li>
+        <li><span class="k">Hairline</span><span class="v">1 px @ 8% ink</span></li>
+        <li><span class="k">Glass</span><span class="v">L2 + 14 px backdrop blur</span></li>
+      </ul>
+    </div>
+    <div class="spec">
+      <div class="st">RHYTHM</div>
+      <h4>4-pt grid, 8-pt block</h4>
+      <ul>
+        <li><span class="k">Step</span><span class="v">4 / 8 / 12 / 16 / 24 / 32 / 48 / 64</span></li>
+        <li><span class="k">Page padding</span><span class="v">32–48 desktop · 16–20 mobile</span></li>
+        <li><span class="k">Sidebar</span><span class="v">72 px</span></li>
+        <li><span class="k">Utility rail</span><span class="v">340 px</span></li>
+        <li><span class="k">Card padding</span><span class="v">16 / 18 / 20</span></li>
+        <li><span class="k">Radius</span><span class="v">2 / 4 / 8 / 999</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ NEXT ============ -->
+<section style="border-bottom:none">
+  <div class="section-head">
+    <div class="num">10 / NEXT</div>
+    <div>
+      <h2>What I'd want to&nbsp;decide next.</h2>
+      <p class="lede">A short list of follow-up calls before any code touches keys. None of this is implementation — it's the next round of design conversation.</p>
+    </div>
+  </div>
+
+  <div class="diag">
+    <div class="cell"><div class="tag">01</div><h3>Tan-mode accent strength</h3><p>Should the Mars red darken in tan mode for AA contrast, or stay identical for brand consistency? I lean toward darken.</p></div>
+    <div class="cell"><div class="tag">02</div><h3>Sidebar vs top nav</h3><p>The recommendation keeps the icon rail. If you'd prefer Direction C's top nav (more editorial), we can swap — it's the same system underneath.</p></div>
+    <div class="cell"><div class="tag">03</div><h3>Calendar &amp; Habits detail</h3><p>I sketched the system; full mocks for Calendar and Habits (today / manage / review) are the next pass.</p></div>
+    <div class="cell"><div class="tag">04</div><h3>Empty states</h3><p>Each module needs a hand-crafted empty state (Tasks, Log, Habits, Calendar). Space-themed copy, real illustration TBD.</p></div>
+    <div class="cell"><div class="tag">05</div><h3>Onboarding</h3><p>The current "↓ scroll or arrow keys — enter to open" cover is great. We should design how it transitions into the cabin once selected.</p></div>
+    <div class="cell"><div class="tag">06</div><h3>Sound &amp; ambient motion</h3><p>If we're adding sound and orbit motion, we should design the off-state and the on-state with care so they feel additive, never noisy.</p></div>
+  </div>
+</section>
+
+</div><!-- /doc -->
+
+</body>
+</html>

@@ -170,6 +170,13 @@ const safeLS = {
   set: (k, v)   => { try { localStorage.setItem(k, v); } catch(e) {} },
 };
 
+// ─── Supabase client ─────────────────────────────────────
+const SUPABASE_URL = 'https://nfcyiuqrrrgdzqrpwnrm.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_p3dAeWkYTPT5-zW7q4fJQg_fi_bOG6E';
+const supabaseClient = window.supabase
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+  : null;
+
 // ─── Icons ────────────────────────────────────────────────
 const SvgIcon = ({ d, size = 18 }) => (
   <svg width={size} height={size} viewBox="0 0 20 20" fill="none"
@@ -448,7 +455,7 @@ function Landing({ onNavigate }) {
 }
 
 // ─── Sidebar ──────────────────────────────────────────────
-function Sidebar({ screen, onNavigate, bgPanelOpen, onToggleBgPanel, soundMuted, onToggleSound, onOpenProfile, onOpenImportExport, theme }) {
+function Sidebar({ screen, onNavigate, bgPanelOpen, onToggleBgPanel, soundMuted, onToggleSound, onOpenProfile, onOpenImportExport, theme, syncStatus }) {
   const themeLabel = theme === 'tan' ? 'Light Tan' : 'Dark Space';
   return (
     <nav className="sidebar">
@@ -491,6 +498,9 @@ function Sidebar({ screen, onNavigate, bgPanelOpen, onToggleBgPanel, soundMuted,
         data-tip="Profile & Settings">
         {Icons.person}
       </button>
+      <div style={{marginTop:5,paddingLeft:1,paddingBottom:2}}>
+        <SyncBadge status={syncStatus || 'local'}/>
+      </div>
       <div className="sidebar-theme-pill" title={`Theme: ${themeLabel}`}>{themeLabel}</div>
     </nav>
   );
@@ -596,7 +606,7 @@ function BgSettingsPanel({ bgChoice, bgFilter, onSetBgChoice, onSetBgFilter, onC
 }
 
 // ─── App Shell ────────────────────────────────────────────
-function AppShell({ screen, onNavigate, bgChoice, bgFilter, onSetBgChoice, onSetBgFilter, soundMuted, onToggleSound, onOpenProfile, theme, onSetTheme, uiMotion, onSetMotion, children }) {
+function AppShell({ screen, onNavigate, bgChoice, bgFilter, onSetBgChoice, onSetBgFilter, soundMuted, onToggleSound, onOpenProfile, theme, onSetTheme, uiMotion, onSetMotion, syncStatus, children }) {
   const [showBgPanel,      setShowBgPanel]      = useState(false);
   const [showImportExport, setShowImportExport] = useState(false);
   const bg = BACKGROUNDS.find(b => b.id === bgChoice) || BACKGROUNDS[0];
@@ -637,6 +647,7 @@ function AppShell({ screen, onNavigate, bgChoice, bgFilter, onSetBgChoice, onSet
         onOpenProfile={onOpenProfile}
         onOpenImportExport={() => { playSound('button'); setShowImportExport(true); }}
         theme={theme}
+        syncStatus={syncStatus}
       />
       {showBgPanel && (
         <>
@@ -809,7 +820,7 @@ function Pomodoro({ pomState: p, setPomState, taskTitles, onPostAccomplishment }
 
       <div className="pomo-layout row g20 flex1" style={{minHeight:0}}>
         <div className="panel flex1 col ac jc red-rim of-h rel">
-          <div className="abs" style={{inset:0,background:'radial-gradient(circle at center,rgba(192,57,43,0.06),transparent 60%)',pointerEvents:'none'}}/>
+          <div className="abs" style={{inset:0,background:'radial-gradient(circle at center,rgba(229,72,77,0.06),transparent 60%)',pointerEvents:'none'}}/>
           <div className="mono t10 c3 uc ls-wide" style={{position:'absolute',top:24,left:0,right:0,textAlign:'center',textShadow:'0 1px 4px rgba(0,0,0,0.8)'}}>
             {phaseLabel} · {fmt2(timeLeft)} remaining
           </div>
@@ -823,22 +834,22 @@ function Pomodoro({ pomState: p, setPomState, taskTitles, onPostAccomplishment }
                 stroke={i%5===0?'rgba(255,255,255,0.22)':'rgba(255,255,255,0.08)'} strokeWidth="1"/>;
             })}
             <circle cx="180" cy="180" r={R} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="10"/>
-            <circle cx="180" cy="180" r={R} fill="none" stroke="rgba(192,57,43,0.35)" strokeWidth="14"
+            <circle cx="180" cy="180" r={R} fill="none" stroke="rgba(229,72,77,0.28)" strokeWidth="14"
               strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C*(1-pct)}
               transform="rotate(-90 180 180)" filter="url(#pomo-glow)" style={{transition:tOpts}}/>
-            <circle cx="180" cy="180" r={R} fill="none" stroke="#c0392b" strokeWidth="4"
+            <circle cx="180" cy="180" r={R} fill="none" stroke="#E5484D" strokeWidth="4"
               strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C*(1-pct)}
               transform="rotate(-90 180 180)" style={{transition:tOpts}}/>
             {pct > 0.005 && (
               <g style={{transformOrigin:'180px 180px',transform:`rotate(${ringAngle}deg)`,transition:running?'transform 1.05s linear':'none'}}>
-                <circle cx={180+R} cy={180} r="10" fill="rgba(192,57,43,0.4)" filter="url(#pomo-glow)"/>
-                <circle cx={180+R} cy={180} r="5" fill="#e05050"/>
+                <circle cx={180+R} cy={180} r="10" fill="rgba(229,72,77,0.35)" filter="url(#pomo-glow)"/>
+                <circle cx={180+R} cy={180} r="5" fill="#FF6B6F"/>
                 <circle cx={180+R} cy={180} r="2.5" fill="#fff"/>
               </g>
             )}
-            <text x="180" y="168" textAnchor="middle" fontFamily="'JetBrains Mono',monospace" fontSize="11" fill="rgba(255,255,255,0.32)" letterSpacing="3">{phaseLabel.toUpperCase()}</text>
-            <text x="180" y="210" textAnchor="middle" fontFamily="'Space Grotesk',sans-serif" fontSize="56" fontWeight="300" fill="#f5f5f5">{fmt2(timeLeft)}</text>
-            <text x="180" y="232" textAnchor="middle" fontFamily="'JetBrains Mono',monospace" fontSize="9" fill="rgba(255,255,255,0.32)" letterSpacing="2">{Math.round(pct*100)}% COMPLETE</text>
+            <text x="180" y="166" textAnchor="middle" fontFamily="'JetBrains Mono',monospace" fontSize="10" fill="rgba(236,231,221,0.30)" letterSpacing="3">{phaseLabel.toUpperCase()}</text>
+            <text x="180" y="214" textAnchor="middle" fontFamily="'Instrument Serif',serif" fontSize="60" fontWeight="400" fill="#ECE7DD">{fmt2(timeLeft)}</text>
+            <text x="180" y="234" textAnchor="middle" fontFamily="'JetBrains Mono',monospace" fontSize="9" fill="rgba(236,231,221,0.28)" letterSpacing="2">{Math.round(pct*100)}% COMPLETE</text>
           </svg>
 
           <div className="row g12 ac" style={{marginTop:-4,zIndex:1}}>
@@ -849,7 +860,7 @@ function Pomodoro({ pomState: p, setPomState, taskTitles, onPostAccomplishment }
           <div className="row g6" style={{marginTop:16}}>
             {Array.from({length:numDots},(_,i) => {
               const done=(i+1)<round, cur=(i+1)===round&&phase==='work';
-              return <div key={i} style={{width:18,height:4,borderRadius:2,background:done?'#c0392b':cur?'rgba(192,57,43,0.45)':'rgba(255,255,255,0.1)',boxShadow:done?'0 0 6px rgba(192,57,43,0.4)':'none'}}/>;
+              return <div key={i} style={{width:18,height:4,borderRadius:2,background:done?'#E5484D':cur?'rgba(229,72,77,0.45)':'rgba(236,231,221,0.10)',boxShadow:done?'0 0 6px rgba(229,72,77,0.4)':'none'}}/>;
             })}
           </div>
         </div>
@@ -1012,11 +1023,11 @@ function TimerScreen({ sessions, onAddSession, taskTitles, onPostAccomplishment 
 
       <div className="timer-layout row g24 flex1" style={{minHeight:0}}>
         <div className="panel flex1 col ac jc of-h rel">
-          <div className="abs" style={{inset:0,background:'radial-gradient(circle at center,rgba(192,57,43,0.04),transparent 55%)',pointerEvents:'none'}}/>
+          <div className="abs" style={{inset:0,background:'radial-gradient(circle at center,rgba(229,72,77,0.04),transparent 55%)',pointerEvents:'none'}}/>
           <div className="mono t10 c3 uc ls-wide" style={{marginBottom:24,textShadow:'0 1px 4px rgba(0,0,0,0.8)'}}>
             {mode==='countdown'?'◷ Countdown':'⏱ Stopwatch'}
           </div>
-          <div className="disp fw3" style={{fontSize:80,lineHeight:1,letterSpacing:'-0.02em',color:'#f5f5f5',textShadow:'0 0 40px rgba(255,255,255,0.07),0 2px 20px rgba(0,0,0,0.7)'}}>
+          <div style={{fontFamily:"'Instrument Serif',serif",fontSize:80,lineHeight:1,letterSpacing:'-0.02em',fontWeight:400,color:'var(--text)',textShadow:'0 0 40px rgba(229,72,77,0.08),0 2px 20px rgba(0,0,0,0.7)'}}>
             {fmtH(display)}
           </div>
           {mode==='countdown' && (
@@ -1349,7 +1360,7 @@ function Tasks({ cols, setCols, focusData, accomplishmentMap }) {
                 const focusKey=task.title.toLowerCase().trim();
                 const focus=focusData?.[focusKey], acc=accomplishmentMap?.[focusKey];
                 return (
-                  <div key={task.id} className={`task-card${isDrag?' is-dragging':''}${isDimmed?' dimmed':''}`}
+                  <div key={task.id} className={`task-card${isDrag?' is-dragging':''}${isDimmed?' dimmed':''}${task.priority==='high'?' prio-high':task.priority==='low'?' prio-low':''}`}
                     draggable onDragStart={e => handleDragStart(e,col,task.id)} onDragEnd={handleDragEnd}>
                     <div style={{fontSize:13,fontWeight:500,lineHeight:1.4,color:isDimmed?'rgba(255,255,255,0.42)':'var(--text)',textDecoration:isDimmed?'line-through':'none'}}>{task.title}</div>
                     <div className="row ac g5 wrap" style={{marginTop:8}}>
@@ -2424,6 +2435,109 @@ function GlobalImportExportModal({ onImport, onCancel }) {
 // ═════════════════════════════════════════════════════════
 // PROFILE MODAL
 // ═════════════════════════════════════════════════════════
+// ─── Sync status badge ───────────────────────────────────
+const SYNC_META = {
+  'local':     { label: 'Local only', color: 'var(--text-3)' },
+  'signed-in': { label: 'Signed in',  color: '#4caf89'       },
+  'syncing':   { label: 'Syncing…',   color: '#ca6f1e'       },
+  'synced':    { label: 'Synced',     color: '#4caf89'       },
+  'error':     { label: 'Sync error', color: 'var(--red-2)'  },
+};
+
+function SyncBadge({ status }) {
+  const { label, color } = SYNC_META[status] || SYNC_META['local'];
+  return (
+    <div style={{display:'flex',alignItems:'center',gap:5}}>
+      <span style={{width:5,height:5,borderRadius:'50%',background:color,flexShrink:0}}/>
+      <span className="mono" style={{fontSize:8,color,letterSpacing:'0.05em',opacity:0.85}}>{label}</span>
+    </div>
+  );
+}
+
+// ─── Auth section (inside Profile modal) ─────────────────
+function AuthSection({ authUser, authLoading, onSignIn, onSignUp, onSignOut }) {
+  const [mode,     setMode]     = useState('signin');
+  const [email,    setEmail]    = useState('');
+  const [password, setPassword] = useState('');
+  const [err,      setErr]      = useState('');
+  const [busy,     setBusy]     = useState(false);
+  const [signedUp, setSignedUp] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!email.trim() || !password.trim()) { setErr('Email and password are required.'); return; }
+    setErr(''); setBusy(true);
+    try {
+      if (mode === 'signin') {
+        await onSignIn(email.trim(), password);
+      } else {
+        await onSignUp(email.trim(), password);
+        setSignedUp(true);
+      }
+    } catch(e) {
+      setErr(e.message || 'An error occurred.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (authLoading) return (
+    <div className="mono t10 c3" style={{padding:'4px 0'}}>Checking session…</div>
+  );
+
+  if (authUser) return (
+    <div className="row ac jb g12">
+      <div className="col g3">
+        <div className="mono t9 c3">Signed in as</div>
+        <div className="mono t10" style={{color:'var(--text)',wordBreak:'break-all'}}>{authUser.email}</div>
+      </div>
+      <button className="btn ghost sm" onClick={() => { playSound('button'); onSignOut(); }}>Sign out</button>
+    </div>
+  );
+
+  if (signedUp) return (
+    <div className="col g8">
+      <div className="mono t11" style={{color:'#4caf89',lineHeight:1.6}}>
+        Account created. Check your email to confirm, then sign in.
+      </div>
+      <button className="btn ghost sm" style={{alignSelf:'flex-start'}}
+        onClick={() => { setSignedUp(false); setMode('signin'); setEmail(''); setPassword(''); }}>
+        Back to sign in
+      </button>
+    </div>
+  );
+
+  return (
+    <div className="col g10">
+      <div className="row g0" style={{borderRadius:5,overflow:'hidden',border:'1px solid var(--border)'}}>
+        {[['signin','Sign In'],['signup','Sign Up']].map(([m, lbl]) => (
+          <button key={m}
+            className={`btn sm ${mode===m ? 'primary' : 'ghost'}`}
+            style={{flex:1,borderRadius:0,border:'none'}}
+            onClick={() => { setErr(''); setMode(m); }}>
+            {lbl}
+          </button>
+        ))}
+      </div>
+      <div className="col g5">
+        <div className="field">
+          <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+            placeholder="Email address" autoComplete="email"/>
+        </div>
+        <div className="field">
+          <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+            placeholder={mode === 'signin' ? 'Password' : 'Password (min 6 chars)'}
+            autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+            onKeyDown={e => { if (e.key === 'Enter') handleSubmit(); }}/>
+        </div>
+      </div>
+      {err && <div className="mono t10" style={{color:'var(--red-2)',lineHeight:1.5}}>{err}</div>}
+      <button className="btn primary sm" onClick={handleSubmit} disabled={busy}>
+        {busy ? '…' : mode === 'signin' ? 'Sign In' : 'Create Account'}
+      </button>
+    </div>
+  );
+}
+
 const LS_KEYS = [
   'ra_profile','ra_profiles','ra_active_profile_id',
   'ra_tasks','ra_accomplishments',
@@ -2433,7 +2547,7 @@ const LS_KEYS = [
   'ra_daily_reviews','ra_weekly_reviews','ra_theme','ra_ui_motion',
 ];
 
-function ProfileModal({ profile, profiles, activeProfileId, isFirstRun, onSave, onCancel, onSwitchProfile, theme, onSetTheme }) {
+function ProfileModal({ profile, profiles, activeProfileId, isFirstRun, onSave, onCancel, onSwitchProfile, theme, onSetTheme, authUser, authLoading, syncStatus, onSignIn, onSignUp, onSignOut }) {
   const [name,         setName]         = useState(profile.name     || '');
   const [initials,     setInitials]     = useState(profile.initials || '');
   const [confirmReset, setConfirmReset] = useState(false);
@@ -2598,6 +2712,24 @@ function ProfileModal({ profile, profiles, activeProfileId, isFirstRun, onSave, 
           )}
 
           <div className="divider"/>
+
+          {!isFirstRun && (
+            <div className="col g10">
+              <div className="row ac jb">
+                <div className="mono t9 c3 uc">Cloud Account</div>
+                <SyncBadge status={syncStatus || 'local'}/>
+              </div>
+              <AuthSection
+                authUser={authUser}
+                authLoading={authLoading}
+                onSignIn={onSignIn}
+                onSignUp={onSignUp}
+                onSignOut={onSignOut}
+              />
+            </div>
+          )}
+
+          {!isFirstRun && <div className="divider"/>}
 
           {isFirstRun ? (
             <div className="t11 c3" style={{lineHeight:1.65}}>
@@ -3481,6 +3613,10 @@ function App() {
   // Auto-open on first visit (when no name is saved yet)
   const [profileOpen, setProfileOpen] = useState(() => !loadState('ra_profile', DEFAULT_PROFILE).name.trim());
 
+  // ── Auth state ─────────────────────────────────────────
+  const [authUser,    setAuthUser]    = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
   // ── Persistence useEffects ─────────────────────────────
   useEffect(() => {
     saveState('ra_pom_settings', {
@@ -3529,6 +3665,39 @@ function App() {
     safeLS.set('ra_sound_muted', String(next));
     if (!next) playSound('button');
   };
+
+  // ── Auth init & subscription ───────────────────────────
+  useEffect(() => {
+    if (!supabaseClient) { setAuthLoading(false); return; }
+    supabaseClient.auth.getSession().then(({ data }) => {
+      setAuthUser(data.session?.user ?? null);
+      setAuthLoading(false);
+    });
+    const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((_, session) => {
+      setAuthUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignIn = async (email, password) => {
+    if (!supabaseClient) throw new Error('Auth unavailable — check connection.');
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+  };
+
+  const handleSignUp = async (email, password) => {
+    if (!supabaseClient) throw new Error('Auth unavailable — check connection.');
+    const { error } = await supabaseClient.auth.signUp({ email, password });
+    if (error) throw error;
+  };
+
+  const handleSignOut = async () => {
+    if (!supabaseClient) return;
+    playSound('button');
+    await supabaseClient.auth.signOut();
+  };
+
+  const syncStatus = authUser ? 'signed-in' : 'local';
 
   // ── Pomodoro tick ──────────────────────────────────────
   const pomRef = useRef(pom);
@@ -3669,6 +3838,12 @@ function App() {
       onCancel={profileSetupDone ? () => { playSound('button'); setProfileOpen(false); } : () => {}}
       theme={theme}
       onSetTheme={handleSetTheme}
+      authUser={authUser}
+      authLoading={authLoading}
+      syncStatus={syncStatus}
+      onSignIn={handleSignIn}
+      onSignUp={handleSignUp}
+      onSignOut={handleSignOut}
     />
   );
 
@@ -3689,7 +3864,8 @@ function App() {
         soundMuted={soundMuted} onToggleSound={toggleSound}
         onOpenProfile={() => { playSound('button'); setProfileOpen(true); }}
         theme={theme} onSetTheme={handleSetTheme}
-        uiMotion={uiMotion} onSetMotion={setUiMotion}>
+        uiMotion={uiMotion} onSetMotion={setUiMotion}
+        syncStatus={syncStatus}>
         {screen==='pomodoro' && <Pomodoro pomState={pom} setPomState={setPom} taskTitles={taskTitles} onPostAccomplishment={handlePostFromSession}/>}
         {screen==='timer'    && <TimerScreen sessions={timerSessions} onAddSession={s=>setTimerSess(prev=>[...prev,s])} taskTitles={taskTitles} onPostAccomplishment={handlePostFromSession}/>}
         {screen==='tasks'    && <Tasks cols={taskCols} setCols={setTaskCols} focusData={taskFocusMap} accomplishmentMap={accomplishMap}/>}
